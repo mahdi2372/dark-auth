@@ -1,0 +1,31 @@
+# Dependencies
+node_modules/
+
+# Environment
+.env
+.env.local
+
+# Build
+dist/
+build/
+
+# Uploads
+uploads/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Prisma
+backend/prisma/migrations/
+
+# Logs
+*.log
+
+# Environment files with secrets
+.env.production
+.env.local

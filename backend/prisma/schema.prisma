@@ -1,0 +1,275 @@
+// DARK-AUTH Complete Multi-feature Prisma Schema
+// Compatible with both SQLite (zero-config local run) and PostgreSQL
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// USER — Dashboard Admin & Developer Accounts
+// ============================================
+model User {
+  id           String   @id @default(uuid())
+  username     String   @unique
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  role         String   @default("USER") // USER | ADMIN
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  applications Application[]
+  auditLogs    AuditLog[]
+
+  @@map("users")
+}
+
+// ============================================
+// APPLICATION — Application Management
+// ============================================
+model Application {
+  id          String   @id @default(uuid())
+  userId      String   @map("user_id")
+  name        String
+  description String?
+  appId       String   @unique @map("app_id")
+  appSecret   String   @map("app_secret")
+  isActive    Boolean  @default(true) @map("is_active")
+  hashCheck   Boolean  @default(false) @map("hash_check")
+  appHash     String?  @map("app_hash") // Optional expected binary sha256
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  licenses       License[]
+  clientVersions ClientVersion[]
+  appUsers       AppUser[]
+  cloudVariables CloudVariable[]
+  webhooks       Webhook[]
+  appFiles       AppFile[]
+  chatMessages   ChatMessage[]
+  clientSessions ClientSession[]
+
+  @@map("applications")
+}
+
+// ============================================
+// LICENSE — Key Licensing System
+// ============================================
+model License {
+  id           String    @id @default(uuid())
+  appId        String    @map("app_id")
+  key          String    @unique
+  licenseType  String    @default("TIME_LIMITED") @map("license_type") // TIME_LIMITED | LIFETIME | TRIAL
+  status       String    @default("UNUSED") // UNUSED | ACTIVE | EXPIRED | BANNED
+  level        Int       @default(1) // Subscription tier (1=Bronze, 2=Silver, 3=Gold, etc.)
+  hwid         String?
+  maxUses      Int       @default(1) @map("max_uses")
+  currentUses  Int       @default(0) @map("current_uses")
+  expiresAt    DateTime? @map("expires_at")
+  activatedAt  DateTime? @map("activated_at")
+  note         String?
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  application Application  @relation(fields: [appId], references: [id], onDelete: Cascade)
+  activations Activation[]
+  appUsers    AppUser[]
+
+  @@map("licenses")
+}
+
+// ============================================
+// CLIENT VERSION — Version & Auto-Updater
+// ============================================
+model ClientVersion {
+  id              String    @id @default(uuid())
+  appId           String    @map("app_id")
+  version         String
+  downloadUrl     String?   @map("download_url")
+  checksum        String?
+  releaseNotes    String?   @map("release_notes")
+  isLatest        Boolean   @default(false) @map("is_latest")
+  isForced        Boolean   @default(false) @map("is_forced") // Force update vs optional reminder
+  reminderMessage String?   @map("reminder_message")
+  allowedUntil    DateTime? @map("allowed_until") // Grace period deadline
+  filePath        String?   @map("file_path")
+  fileSize        Int?      @map("file_size")
+  createdAt       DateTime  @default(now()) @map("created_at")
+
+  application Application @relation(fields: [appId], references: [id], onDelete: Cascade)
+
+  @@unique([appId, version])
+  @@map("client_versions")
+}
+
+// ============================================
+// ACTIVATION — Client Activation Records
+// ============================================
+model Activation {
+  id              String   @id @default(uuid())
+  licenseId       String   @map("license_id")
+  activationToken String   @unique @map("activation_token")
+  hwid            String?
+  ipAddress       String?  @map("ip_address")
+  userAgent       String?  @map("user_agent")
+  activatedAt     DateTime @default(now()) @map("activated_at")
+
+  license License @relation(fields: [licenseId], references: [id], onDelete: Cascade)
+
+  @@map("activations")
+}
+
+// ============================================
+// APP USER — Client Application End Users
+// (KeyAuth & Authly style User Authentication)
+// ============================================
+model AppUser {
+  id           String    @id @default(uuid())
+  appId        String    @map("app_id")
+  licenseId    String?   @map("license_id")
+  username     String
+  passwordHash String    @map("password_hash")
+  hwid         String?
+  subLevel     Int       @default(1) @map("sub_level")
+  expiresAt    DateTime? @map("expires_at")
+  isBanned     Boolean   @default(false) @map("is_banned")
+  banReason    String?   @map("ban_reason")
+  lastLogin    DateTime? @map("last_login")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  application Application @relation(fields: [appId], references: [id], onDelete: Cascade)
+  license     License?    @relation(fields: [licenseId], references: [id], onDelete: SetNull)
+
+  @@unique([appId, username])
+  @@map("app_users")
+}
+
+// ============================================
+// CLOUD VARIABLE — Remote Cloud Strings / Configs
+// ============================================
+model CloudVariable {
+  id             String   @id @default(uuid())
+  appId          String   @map("app_id")
+  name           String
+  value          String
+  isSecret       Boolean  @default(false) @map("is_secret")
+  userWriteable  Boolean  @default(false) @map("user_writeable")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  application Application @relation(fields: [appId], references: [id], onDelete: Cascade)
+
+  @@unique([appId, name])
+  @@map("cloud_variables")
+}
+
+// ============================================
+// BLACKLIST — HWID & IP Blacklist
+// ============================================
+model Blacklist {
+  id        String   @id @default(uuid())
+  type      String   // "HWID" | "IP"
+  value     String   @unique
+  reason    String?
+  bannedAt  DateTime @default(now()) @map("banned_at")
+
+  @@map("blacklists")
+}
+
+// ============================================
+// APP FILE — Secure Authenticated File Distribution
+// ============================================
+model AppFile {
+  id        String   @id @default(uuid())
+  appId     String   @map("app_id")
+  fileId    String   @unique @map("file_id")
+  name      String
+  fileName  String   @map("file_name")
+  filePath  String   @map("file_path")
+  fileSize  Int      @map("file_size")
+  checksum  String?
+  isPublic  Boolean  @default(false) @map("is_public")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  application Application @relation(fields: [appId], references: [id], onDelete: Cascade)
+
+  @@map("app_files")
+}
+
+// ============================================
+// WEBHOOK — Event Notifications (Discord / Slack)
+// ============================================
+model Webhook {
+  id           String   @id @default(uuid())
+  appId        String   @map("app_id")
+  name         String
+  url          String
+  triggerEvent String   @default("all") @map("trigger_event") // all | on_activate | on_register | on_ban
+  isEnabled    Boolean  @default(true) @map("is_enabled")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  application Application @relation(fields: [appId], references: [id], onDelete: Cascade)
+
+  @@map("webhooks")
+}
+
+// ============================================
+// CHAT MESSAGE — In-App Chat & Announcements
+// ============================================
+model ChatMessage {
+  id        String   @id @default(uuid())
+  appId     String   @map("app_id")
+  channel   String   @default("general")
+  sender    String
+  message   String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  application Application @relation(fields: [appId], references: [id], onDelete: Cascade)
+
+  @@map("chat_messages")
+}
+
+// ============================================
+// CLIENT SESSION — Handshake Session State
+// ============================================
+model ClientSession {
+  id           String   @id @default(uuid())
+  appId        String   @map("app_id")
+  sessionToken String   @unique @map("session_token")
+  hwid         String?
+  ipAddress    String?  @map("ip_address")
+  userAgent    String?  @map("user_agent")
+  isValid      Boolean  @default(true) @map("is_valid")
+  expiresAt    DateTime @map("expires_at")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  application Application @relation(fields: [appId], references: [id], onDelete: Cascade)
+
+  @@map("client_sessions")
+}
+
+// ============================================
+// AUDIT LOG — Action Logging
+// ============================================
+model AuditLog {
+  id           String   @id @default(uuid())
+  userId       String?  @map("user_id")
+  action       String
+  resourceType String?  @map("resource_type")
+  resourceId   String?  @map("resource_id")
+  ipAddress    String?  @map("ip_address")
+  userAgent    String?  @map("user_agent")
+  details      String?  // JSON string
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@map("audit_logs")
+}
