@@ -1,10 +1,5 @@
 {
   "version": 2,
-  "functions": {
-    "api/index.js": {
-      "includeFiles": "backend/**"
-    }
-  },
   "installCommand": "npm install",
   "buildCommand": "npx prisma generate --schema=backend/prisma/schema.prisma && cd frontend && npm install --include=dev && npm run build",
   "outputDirectory": "frontend/dist",
