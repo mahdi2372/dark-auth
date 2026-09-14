@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, Key, Download, CheckCircle2, AlertCircle, RefreshCw, Cpu, Clock, Terminal } from 'lucide-react';
+import { Shield, Key, Download, CheckCircle2, AlertCircle, RefreshCw, Cpu, Clock, Terminal, Clipboard, Edit3 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function ClientPortal() {
@@ -8,6 +8,8 @@ export default function ClientPortal() {
   const [activationData, setActivationData] = useState(null);
   const [hwid, setHwid] = useState('');
   const [downloadUrl, setDownloadUrl] = useState(null);
+  const [hwidMode, setHwidMode] = useState('auto');
+  const [customHwid, setCustomHwid] = useState('');
 
   useEffect(() => {
     // Generate or retrieve persistent browser HWID
@@ -28,12 +30,21 @@ export default function ClientPortal() {
     }
   }, []);
 
+  const getActiveHwid = () => {
+    if (hwidMode === 'custom' && customHwid.trim()) {
+      return customHwid.trim();
+    }
+    return hwid;
+  };
+
   const handleActivate = async (e) => {
     e.preventDefault();
     if (!licenseKey.trim()) {
       toast.error('Please enter a license key.');
       return;
     }
+
+    const activeHwid = getActiveHwid();
 
     setLoading(true);
     try {
@@ -54,7 +65,7 @@ export default function ClientPortal() {
         const directRes = await fetch('/api/client/activate', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ key: licenseKey.trim(), hwid }),
+          body: JSON.stringify({ key: licenseKey.trim(), hwid: activeHwid }),
         });
         const directData = await directRes.json();
         if (!directRes.ok) throw new Error(directData.error || 'Activation failed');
@@ -71,7 +82,7 @@ export default function ClientPortal() {
         body: JSON.stringify({
           session_token: sessionToken,
           key: licenseKey.trim(),
-          hwid,
+          hwid: activeHwid,
         }),
       });
       const licData = await licRes.json();
@@ -249,23 +260,95 @@ export default function ClientPortal() {
                 </div>
               </div>
 
-              {/* Detected HWID badge */}
-              <div style={{
-                background: 'rgba(10, 8, 10, 0.5)',
-                border: '1px solid rgba(255,255,255,0.06)',
-                borderRadius: '10px',
-                padding: '12px 16px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <Cpu size={16} color="#9ca3af" />
-                  <span style={{ fontSize: '12px', color: '#9ca3af' }}>Client Hardware ID:</span>
+              {/* HWID / SID Input */}
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                  <label style={{ fontSize: '13px', fontWeight: 600, color: '#e5e7eb' }}>
+                    HARDWARE ID (SID / HWID)
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setHwidMode(hwidMode === 'auto' ? 'custom' : 'auto')}
+                    style={{
+                      fontSize: '11px',
+                      color: '#f87171',
+                      background: 'rgba(239, 68, 68, 0.1)',
+                      border: '1px solid rgba(239, 68, 68, 0.3)',
+                      borderRadius: '6px',
+                      padding: '4px 10px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                    }}
+                  >
+                    <Edit3 size={11} />
+                    {hwidMode === 'auto' ? 'Enter Manually' : 'Use Auto'}
+                  </button>
                 </div>
-                <code style={{ fontSize: '11px', color: '#f87171', fontFamily: 'monospace' }}>
-                  {hwid.substring(0, 16)}...
-                </code>
+                {hwidMode === 'auto' ? (
+                  <div style={{
+                    background: 'rgba(10, 8, 10, 0.5)',
+                    border: '1px solid rgba(255,255,255,0.06)',
+                    borderRadius: '10px',
+                    padding: '12px 16px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <Cpu size={16} color="#9ca3af" />
+                      <span style={{ fontSize: '12px', color: '#9ca3af' }}>Auto-detected:</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <code style={{ fontSize: '11px', color: '#f87171', fontFamily: 'monospace' }}>
+                        {hwid.substring(0, 20)}...
+                      </code>
+                      <button
+                        type="button"
+                        onClick={() => { navigator.clipboard.writeText(hwid); toast.success('HWID copied!'); }}
+                        style={{
+                          background: 'none', border: 'none', color: '#9ca3af', cursor: 'pointer',
+                          padding: '2px', display: 'flex',
+                        }}
+                        title="Copy HWID"
+                      >
+                        <Clipboard size={14} />
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div>
+                    <div style={{ position: 'relative' }}>
+                      <div style={{
+                        position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: '#ef4444',
+                      }}>
+                        <Cpu size={18} />
+                      </div>
+                      <input
+                        type="text"
+                        placeholder="Paste your Windows SID or HWID here..."
+                        value={customHwid}
+                        onChange={(e) => setCustomHwid(e.target.value)}
+                        style={{
+                          width: '100%',
+                          padding: '14px 16px 14px 44px',
+                          background: 'rgba(10, 8, 10, 0.8)',
+                          border: '1px solid rgba(239, 68, 68, 0.3)',
+                          borderRadius: '12px',
+                          color: '#ffffff',
+                          fontSize: '13px',
+                          fontFamily: 'monospace',
+                          outline: 'none',
+                          boxSizing: 'border-box',
+                        }}
+                      />
+                    </div>
+                    <p style={{ fontSize: '11px', color: '#6b7280', marginTop: '6px' }}>
+                      Run the PowerShell SID grabber to get your Windows SID, then paste it here.
+                    </p>
+                  </div>
+                )}
               </div>
 
               <button
@@ -352,7 +435,7 @@ export default function ClientPortal() {
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
                 <span style={{ color: '#9ca3af' }}>Bound HWID:</span>
-                <code style={{ color: '#9ca3af', fontFamily: 'monospace' }}>{hwid.substring(0, 16)}...</code>
+                <code style={{ color: '#9ca3af', fontFamily: 'monospace' }}>{getActiveHwid().substring(0, 20)}...</code>
               </div>
             </div>
 
