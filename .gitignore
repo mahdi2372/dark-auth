@@ -33,3 +33,5 @@ backend/prisma/migrations/
 # Binaries
 *.exe
 *.zip
+
+.vercel
