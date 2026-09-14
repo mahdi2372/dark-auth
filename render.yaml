@@ -17,7 +17,7 @@ services:
       - key: HMAC_SECRET
         generateValue: true
       - key: CORS_ORIGINS
-        sync: false
+        value: ""
 
   - type: web
     name: dark-auth
@@ -27,10 +27,7 @@ services:
     staticPublishPath: dist
     envVars:
       - key: VITE_API_URL
-        fromService:
-          name: dark-auth-api
-          property: host
-          type: saved_group_string
+        value: ""
     routes:
       - type: rewrite
         source: /*
