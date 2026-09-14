@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import {
   Shield, Key, Download, Cpu, CheckCircle2, Terminal, Code2,
   Lock, RefreshCw, Zap, Bell, Database, Users, ArrowRight, ExternalLink,
-  UserPlus, LogIn, Check, Copy
+  UserPlus, LogIn, Check, Copy, Sparkles
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
