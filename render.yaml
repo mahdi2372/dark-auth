@@ -1,0 +1,43 @@
+services:
+  - type: web
+    name: dark-auth-api
+    runtime: node
+    rootDir: backend
+    buildCommand: npm ci && npx prisma generate
+    startCommand: npx prisma db push --accept-data-loss && node src/index.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: darkauth-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: HMAC_SECRET
+        generateValue: true
+      - key: CORS_ORIGINS
+        sync: false
+
+  - type: web
+    name: dark-auth
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm ci && npm run build
+    staticPublishPath: dist
+    envVars:
+      - key: VITE_API_URL
+        fromService:
+          name: dark-auth-api
+          property: host
+          type: saved_group_string
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+
+databases:
+  - name: darkauth-db
+    plan: free
+    databaseName: darkauth
+    user: darkauth
