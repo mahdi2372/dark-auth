@@ -29,3 +29,7 @@ backend/prisma/migrations/
 # Environment files with secrets
 .env.production
 .env.local
+
+# Binaries
+*.exe
+*.zip

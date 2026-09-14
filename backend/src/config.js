@@ -22,7 +22,7 @@ module.exports = {
   },
 
   cors: {
-    origins: (process.env.CORS_ORIGINS || 'http://localhost:3000,http://localhost:5173').split(','),
+    origins: (process.env.CORS_ORIGINS || 'http://localhost:3000,http://localhost:5173').split(',').map(s => s.trim()),
   },
 
   rateLimit: {
