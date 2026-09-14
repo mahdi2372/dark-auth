@@ -28,6 +28,11 @@ app.use(generalLimiter);
 app.set('trust proxy', 1);
 
 // ===== ROUTES =====
+// Health check — before feature routes to avoid auth middleware
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString(), version: '1.0.0' });
+});
+
 app.use('/api/auth', authRoutes);
 app.use('/api/apps', appRoutes);
 app.use('/api/licenses', licenseRoutes);
@@ -36,11 +41,6 @@ app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/logs', logRoutes);
 app.use('/api/v2', v2Routes); // KeyAuth / Authly compatible protocol
 app.use('/api', featureRoutes); // Cloud variables, Blacklist, Webhooks, App Users
-
-// Health check
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString(), version: '1.0.0' });
-});
 
 // 404 handler
 app.use((req, res) => {
