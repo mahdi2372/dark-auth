@@ -35,3 +35,4 @@ backend/prisma/migrations/
 *.zip
 
 .vercel
+.playwright-mcp/
