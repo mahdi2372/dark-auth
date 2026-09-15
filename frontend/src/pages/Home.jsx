@@ -1,130 +1,23 @@
-import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
-  Shield, Key, Download, Cpu, CheckCircle2, Terminal, Code2,
-  Lock, RefreshCw, Zap, Bell, Database, Users, ArrowRight, ExternalLink,
-  UserPlus, LogIn, Check, Copy, Sparkles
+  Shield, Cpu, Lock, RefreshCw, Zap, Bell, Database, Users,
+  UserPlus, Terminal, Code2, Check, Copy,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function Home() {
   const navigate = useNavigate();
-  const { register: authRegister, login: authLogin } = useAuth();
+  const { register: authRegister } = useAuth();
 
-  const [activeTab, setActiveTab] = useState('client'); // 'client' | 'features' | 'sdks' | 'pricing'
-  const [authMode, setAuthMode] = useState('client_register'); // 'client_register' | 'client_login' | 'dev_register'
-
-  // Common fields
-  const [licenseKey, setLicenseKey] = useState('');
-  const [clientUsername, setClientUsername] = useState('');
-  const [clientPassword, setClientPassword] = useState('');
+  const [activeTab, setActiveTab] = useState('features'); // 'features' | 'sdks' | 'pricing'
   const [devUsername, setDevUsername] = useState('');
   const [devEmail, setDevEmail] = useState('');
   const [devPassword, setDevPassword] = useState('');
-
   const [loading, setLoading] = useState(false);
-  const [activationData, setActivationData] = useState(null);
-  const [hwid, setHwid] = useState('');
   const [selectedSdk, setSelectedSdk] = useState('python');
 
-  useEffect(() => {
-    let storedHwid = localStorage.getItem('darkauth_portal_hwid');
-    if (!storedHwid) {
-      storedHwid = 'CLIENT-' + Array.from(crypto.getRandomValues(new Uint8Array(16)))
-        .map(b => b.toString(16).padStart(2, '0')).join('').toUpperCase();
-      localStorage.setItem('darkauth_portal_hwid', storedHwid);
-    }
-    setHwid(storedHwid);
-
-    const saved = localStorage.getItem('darkauth_saved_activation');
-    if (saved) {
-      try { setActivationData(JSON.parse(saved)); } catch {}
-    }
-  }, []);
-
-  // 1. Client Registration with License Key (KeyAuth / Authly style)
-  const handleClientRegister = async (e) => {
-    e.preventDefault();
-    if (!clientUsername.trim() || !clientPassword || !licenseKey.trim()) {
-      return toast.error('Username, password, and license key are required.');
-    }
-    if (clientPassword.length < 4) {
-      return toast.error('Password must be at least 4 characters.');
-    }
-
-    setLoading(true);
-    try {
-      const res = await fetch('/api/v2/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          username: clientUsername.trim(),
-          password: clientPassword,
-          key: licenseKey.trim(),
-          hwid,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.message || data.error || 'Registration failed');
-      }
-
-      setActivationData({
-        ...data,
-        key: licenseKey.trim(),
-        username: data.user?.username || clientUsername,
-        level: data.user?.level || 1,
-        expires_at: data.user?.expires_at,
-      });
-      localStorage.setItem('darkauth_saved_activation', JSON.stringify(data));
-      toast.success('Account registered and license bound successfully!');
-    } catch (err) {
-      toast.error(err.message || 'Client registration failed');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // 3. Client User Login (KeyAuth / Authly style)
-  const handleClientLogin = async (e) => {
-    e.preventDefault();
-    if (!clientUsername.trim() || !clientPassword) {
-      return toast.error('Username and password are required.');
-    }
-
-    setLoading(true);
-    try {
-      const res = await fetch('/api/v2/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          username: clientUsername.trim(),
-          password: clientPassword,
-          hwid,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.message || data.error || 'Login failed');
-      }
-
-      setActivationData({
-        ...data,
-        username: data.user?.username || clientUsername,
-        level: data.user?.level || 1,
-        expires_at: data.user?.expires_at,
-      });
-      localStorage.setItem('darkauth_saved_activation', JSON.stringify(data));
-      toast.success('Welcome back! Client session verified.');
-    } catch (err) {
-      toast.error(err.message || 'Client login failed');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // 4. Developer / Admin Registration (All-In-One Dashboard Account)
   const handleDevRegister = async (e) => {
     e.preventDefault();
     if (!devUsername.trim() || !devEmail.trim() || !devPassword) {
@@ -141,7 +34,7 @@ export default function Home() {
         email: devEmail.trim(),
         password: devPassword,
       });
-      toast.success('Developer account created! Redirecting to Dashboard...');
+      toast.success('Account created! Redirecting to Dashboard...');
       navigate('/dashboard');
     } catch (err) {
       toast.error(err.response?.data?.error || err.response?.data?.message || err.message || 'Registration failed');
@@ -247,9 +140,9 @@ local res = auth:license("XXXXX-XXXXX-XXXXX-XXXXX")`,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <div style={{
-            width: '38px',
-            height: '38px',
-            borderRadius: '10px',
+            width: '36px',
+            height: '36px',
+            borderRadius: '8px',
             background: 'linear-gradient(135deg, #ef4444, #991b1b)',
             display: 'flex',
             alignItems: 'center',
@@ -259,91 +152,65 @@ local res = auth:license("XXXXX-XXXXX-XXXXX-XXXXX")`,
             <Shield size={20} color="#fff" />
           </div>
           <div>
-            <div style={{ fontWeight: 900, fontSize: '18px', letterSpacing: '1px' }}>
+            <span style={{ fontWeight: 800, fontSize: '17px', letterSpacing: '1px' }}>
               DARK<span style={{ color: '#ef4444' }}>AUTH</span>
-            </div>
+            </span>
           </div>
         </div>
 
-        {/* Center Nav Links */}
-        <nav style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
-          <button
-            onClick={() => setActiveTab('client')}
-            style={{
-              background: 'none', border: 'none', color: activeTab === 'client' ? '#ef4444' : '#9ca3af',
-              fontWeight: 600, fontSize: '14px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px'
-            }}
-          >
-            <Key size={15} /> All-In-One Auth
-          </button>
-          <button
-            onClick={() => setActiveTab('features')}
-            style={{
-              background: 'none', border: 'none', color: activeTab === 'features' ? '#ef4444' : '#9ca3af',
-              fontWeight: 600, fontSize: '14px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px'
-            }}
-          >
-            <Zap size={15} /> Features
-          </button>
-          <button
-            onClick={() => setActiveTab('sdks')}
-            style={{
-              background: 'none', border: 'none', color: activeTab === 'sdks' ? '#ef4444' : '#9ca3af',
-              fontWeight: 600, fontSize: '14px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px'
-            }}
-          >
-            <Code2 size={15} /> 14 SDKs
-          </button>
-          <button
-            onClick={() => setActiveTab('pricing')}
-            style={{
-              background: 'none', border: 'none', color: activeTab === 'pricing' ? '#ef4444' : '#9ca3af',
-              fontWeight: 600, fontSize: '14px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px'
-            }}
-          >
-            <Sparkles size={15} /> Plans
-          </button>
+        <nav style={{ display: 'flex', gap: '4px' }}>
+          {[
+            { id: 'features', label: 'Features' },
+            { id: 'sdks', label: 'SDKs' },
+            { id: 'pricing', label: 'Pricing' },
+          ].map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              style={{
+                padding: '8px 16px',
+                borderRadius: '8px',
+                border: 'none',
+                background: activeTab === tab.id ? 'rgba(239, 68, 68, 0.15)' : 'transparent',
+                color: activeTab === tab.id ? '#ef4444' : '#9ca3af',
+                fontWeight: 600,
+                fontSize: '13px',
+                cursor: 'pointer',
+              }}
+            >
+              {tab.label}
+            </button>
+          ))}
         </nav>
 
-        {/* Right Action Buttons */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <Link
-            to="/login"
-            style={{
-              padding: '8px 18px',
-              borderRadius: '10px',
-              border: '1px solid rgba(255,255,255,0.15)',
-              color: '#ffffff',
-              textDecoration: 'none',
-              fontSize: '13px',
-              fontWeight: 600,
-            }}
-          >
-            Dashboard Login
-          </Link>
-          <Link
-            to="/register"
-            style={{
-              padding: '8px 20px',
-              borderRadius: '10px',
-              background: 'linear-gradient(135deg, #ef4444, #b91c1c)',
-              color: '#ffffff',
-              textDecoration: 'none',
-              fontSize: '13px',
-              fontWeight: 700,
-              boxShadow: '0 4px 15px rgba(239, 68, 68, 0.4)',
-            }}
-          >
-            Create Account
-          </Link>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <a href="/login" style={{
+            fontSize: '13px',
+            color: '#9ca3af',
+            textDecoration: 'none',
+            padding: '8px 16px',
+            borderRadius: '8px',
+            border: '1px solid rgba(255,255,255,0.1)',
+          }}>
+            Sign In
+          </a>
+          <a href="/register" style={{
+            fontSize: '13px',
+            color: '#fff',
+            textDecoration: 'none',
+            padding: '8px 16px',
+            borderRadius: '8px',
+            background: '#ef4444',
+            fontWeight: 600,
+          }}>
+            Get Started
+          </a>
         </div>
       </header>
 
-      {/* Main Unified Content */}
-      <main style={{ flex: 1, maxWidth: '1040px', width: '100%', margin: '0 auto', padding: '40px 24px' }}>
-        
-        {/* Unified Hero */}
-        <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+      <main style={{ flex: 1, maxWidth: '1100px', width: '100%', margin: '0 auto', padding: '48px 24px' }}>
+        {/* Hero Section */}
+        <div style={{ textAlign: 'center', marginBottom: '48px' }}>
           <div style={{
             display: 'inline-flex',
             alignItems: 'center',
@@ -358,7 +225,7 @@ local res = auth:license("XXXXX-XXXXX-XXXXX-XXXXX")`,
             marginBottom: '16px',
           }}>
             <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#ef4444', boxShadow: '0 0 10px #ef4444' }} />
-            All-In-One Unified Authentication & Licensing Platform
+            Open Source Licensing Platform
           </div>
 
           <h1 style={{
@@ -370,566 +237,159 @@ local res = auth:license("XXXXX-XXXXX-XXXXX-XXXXX")`,
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
           }}>
-            Unified Authentication & Licensing Platform
+            Protect Your Software
           </h1>
-          <p style={{ color: '#9ca3af', fontSize: '16px', maxWidth: '640px', margin: '0 auto 20px', lineHeight: 1.6 }}>
-            Unified client key redemption, instant account registration, hardware ID locking, and developer portal.
+          <p style={{ color: '#9ca3af', fontSize: '16px', maxWidth: '560px', margin: '0 auto 32px', lineHeight: 1.6 }}>
+            License generation, hardware ID locking, auto-updates, and cloud variables. Built for developers, by developers.
           </p>
 
-          {/* Quick tab switcher */}
+          {/* Developer Registration Form */}
           <div style={{
-            display: 'inline-flex',
-            background: 'rgba(255,255,255,0.04)',
-            border: '1px solid rgba(255,255,255,0.08)',
-            borderRadius: '14px',
-            padding: '4px',
-            gap: '4px',
+            maxWidth: '440px',
+            margin: '0 auto',
+            background: 'rgba(24, 18, 22, 0.85)',
+            border: '1px solid rgba(239, 68, 68, 0.3)',
+            borderRadius: '20px',
+            padding: '32px',
+            backdropFilter: 'blur(20px)',
+            boxShadow: '0 20px 50px rgba(0, 0, 0, 0.6), 0 0 30px rgba(239, 68, 68, 0.15)',
           }}>
-            {[
-              { id: 'client', label: '🔴 Live Activation & Registration' },
-              { id: 'features', label: '⚡ Features & Security' },
-              { id: 'sdks', label: '💻 14 Language SDKs' },
-              { id: 'pricing', label: '💎 Version Tiers' },
-            ].map(tab => (
+            <div style={{ textAlign: 'left', marginBottom: '20px' }}>
+              <h2 style={{ fontSize: '20px', fontWeight: 800, margin: '0 0 4px 0', color: '#fca5a5' }}>
+                Create Developer Account
+              </h2>
+              <p style={{ color: '#9ca3af', fontSize: '13px', margin: 0 }}>
+                Start managing licenses in minutes. Free & self-hosted.
+              </p>
+            </div>
+
+            <form onSubmit={handleDevRegister} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#e5e7eb', marginBottom: '4px' }}>
+                  USERNAME
+                </label>
+                <input
+                  type="text"
+                  placeholder="your_username"
+                  value={devUsername}
+                  onChange={(e) => setDevUsername(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '12px 14px',
+                    background: 'rgba(10, 8, 10, 0.8)',
+                    border: '1px solid rgba(255,255,255,0.12)',
+                    borderRadius: '10px',
+                    color: '#ffffff',
+                    fontSize: '14px',
+                    boxSizing: 'border-box',
+                    outline: 'none',
+                  }}
+                  required
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#e5e7eb', marginBottom: '4px' }}>
+                  EMAIL
+                </label>
+                <input
+                  type="email"
+                  placeholder="you@example.com"
+                  value={devEmail}
+                  onChange={(e) => setDevEmail(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '12px 14px',
+                    background: 'rgba(10, 8, 10, 0.8)',
+                    border: '1px solid rgba(255,255,255,0.12)',
+                    borderRadius: '10px',
+                    color: '#ffffff',
+                    fontSize: '14px',
+                    boxSizing: 'border-box',
+                    outline: 'none',
+                  }}
+                  required
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#e5e7eb', marginBottom: '4px' }}>
+                  PASSWORD
+                </label>
+                <input
+                  type="password"
+                  placeholder="Min 4 characters"
+                  value={devPassword}
+                  onChange={(e) => setDevPassword(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '12px 14px',
+                    background: 'rgba(10, 8, 10, 0.8)',
+                    border: '1px solid rgba(255,255,255,0.12)',
+                    borderRadius: '10px',
+                    color: '#ffffff',
+                    fontSize: '14px',
+                    boxSizing: 'border-box',
+                    outline: 'none',
+                  }}
+                  required
+                />
+              </div>
+
               <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
+                type="submit"
+                disabled={loading}
                 style={{
-                  padding: '8px 16px',
-                  borderRadius: '10px',
+                  marginTop: '4px',
+                  padding: '14px',
+                  background: 'linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)',
+                  color: '#ffffff',
                   border: 'none',
-                  background: activeTab === tab.id ? '#ef4444' : 'transparent',
-                  color: activeTab === tab.id ? '#fff' : '#9ca3af',
-                  fontWeight: 600,
-                  fontSize: '13px',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s',
+                  borderRadius: '10px',
+                  fontSize: '15px',
+                  fontWeight: 700,
+                  cursor: loading ? 'not-allowed' : 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  boxShadow: '0 8px 25px rgba(239, 68, 68, 0.4)',
                 }}
               >
-                {tab.label}
+                {loading ? <RefreshCw size={16} className="animate-spin" /> : <UserPlus size={16} />}
+                {loading ? 'Creating Account...' : 'Create Account & Go to Dashboard'}
               </button>
-            ))}
+            </form>
+
+            <p style={{ textAlign: 'center', marginTop: '16px', fontSize: '12px', color: '#6b7280' }}>
+              Already have an account? <a href="/login" style={{ color: '#ef4444', textDecoration: 'none' }}>Sign in</a>
+            </p>
           </div>
         </div>
 
-        {/* TAB 1: ALL-IN-ONE CLIENT AUTH & REGISTRATION */}
-        {activeTab === 'client' && (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-            {!activationData ? (
-              <div style={{
-                width: '100%',
-                maxWidth: '600px',
-                background: 'rgba(24, 18, 22, 0.85)',
-                border: '1px solid rgba(239, 68, 68, 0.3)',
-                borderRadius: '20px',
-                padding: '32px',
-                backdropFilter: 'blur(20px)',
-                boxShadow: '0 20px 50px rgba(0, 0, 0, 0.6), 0 0 30px rgba(239, 68, 68, 0.15)',
-              }}>
-                {/* Auth sub-mode selector */}
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(3, 1fr)',
-                  gap: '4px',
-                  background: 'rgba(10, 8, 10, 0.7)',
-                  padding: '4px',
-                  borderRadius: '12px',
-                  marginBottom: '24px',
-                  border: '1px solid rgba(255, 255, 255, 0.08)',
-                }}>
-                  {[
-                    { id: 'client_register', label: 'Client Register' },
-                    { id: 'client_login', label: 'Client Login' },
-                    { id: 'dev_register', label: 'Dev Sign-Up' },
-                  ].map(m => (
-                    <button
-                      key={m.id}
-                      type="button"
-                      onClick={() => setAuthMode(m.id)}
-                      style={{
-                        padding: '8px 4px',
-                        borderRadius: '8px',
-                        border: 'none',
-                        background: authMode === m.id ? '#ef4444' : 'transparent',
-                        color: authMode === m.id ? '#ffffff' : '#9ca3af',
-                        fontSize: '12px',
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                        transition: 'all 0.15s',
-                        textAlign: 'center',
-                      }}
-                    >
-                      {m.label}
-                    </button>
-                  ))}
-                </div>
-
-                {/* Submode 1: Client Registration (KeyAuth / Authly User + Key) */}
-                {authMode === 'client_register' && (
-                  <div>
-                    <div style={{ marginBottom: '6px' }}>
-                      <h2 style={{ fontSize: '18px', fontWeight: 800, margin: 0, color: '#fca5a5' }}>
-                        Client Registration
-                      </h2>
-                    </div>
-                    <p style={{ color: '#9ca3af', fontSize: '13px', marginBottom: '18px' }}>
-                      Register an end-user account with your product license key.
-                    </p>
-
-                    <form onSubmit={handleClientRegister} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                      <div>
-                        <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#e5e7eb', marginBottom: '4px' }}>
-                          USERNAME
-                        </label>
-                        <input
-                          type="text"
-                          placeholder="client_username"
-                          value={clientUsername}
-                          onChange={(e) => setClientUsername(e.target.value)}
-                          style={{
-                            width: '100%',
-                            padding: '10px 12px',
-                            background: 'rgba(10, 8, 10, 0.8)',
-                            border: '1px solid rgba(255,255,255,0.12)',
-                            borderRadius: '8px',
-                            color: '#ffffff',
-                            fontSize: '13px',
-                            boxSizing: 'border-box',
-                          }}
-                          required
-                        />
-                      </div>
-
-                      <div>
-                        <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#e5e7eb', marginBottom: '4px' }}>
-                          PASSWORD
-                        </label>
-                        <input
-                          type="password"
-                          placeholder="At least 4 characters"
-                          value={clientPassword}
-                          onChange={(e) => setClientPassword(e.target.value)}
-                          style={{
-                            width: '100%',
-                            padding: '10px 12px',
-                            background: 'rgba(10, 8, 10, 0.8)',
-                            border: '1px solid rgba(255,255,255,0.12)',
-                            borderRadius: '8px',
-                            color: '#ffffff',
-                            fontSize: '13px',
-                            boxSizing: 'border-box',
-                          }}
-                          required
-                        />
-                      </div>
-
-                      <div>
-                        <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#e5e7eb', marginBottom: '4px' }}>
-                          LICENSE KEY
-                        </label>
-                        <input
-                          type="text"
-                          placeholder="XXXXX-XXXXX-XXXXX-XXXXX"
-                          value={licenseKey}
-                          onChange={(e) => setLicenseKey(e.target.value)}
-                          style={{
-                            width: '100%',
-                            padding: '10px 12px',
-                            background: 'rgba(10, 8, 10, 0.8)',
-                            border: '1px solid rgba(239, 68, 68, 0.3)',
-                            borderRadius: '8px',
-                            color: '#ffffff',
-                            fontSize: '13px',
-                            fontFamily: 'monospace',
-                            boxSizing: 'border-box',
-                          }}
-                          required
-                        />
-                      </div>
-
-                      <button
-                        type="submit"
-                        disabled={loading}
-                        style={{
-                          marginTop: '6px',
-                          padding: '12px',
-                          background: 'linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)',
-                          color: '#ffffff',
-                          border: 'none',
-                          borderRadius: '8px',
-                          fontSize: '14px',
-                          fontWeight: 700,
-                          cursor: loading ? 'not-allowed' : 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '8px',
-                        }}
-                      >
-                        {loading ? <RefreshCw size={15} className="animate-spin" /> : <UserPlus size={15} />}
-                        {loading ? 'Creating Account...' : 'Register Account & Activate Key'}
-                      </button>
-                    </form>
-                  </div>
-                )}
-
-                {/* Submode 2: Client Login (KeyAuth Style) */}
-                {authMode === 'client_login' && (
-                  <div>
-                    <h2 style={{ fontSize: '18px', fontWeight: 800, margin: '0 0 6px 0', color: '#fca5a5' }}>
-                      Client User Login
-                    </h2>
-                    <p style={{ color: '#9ca3af', fontSize: '13px', marginBottom: '18px' }}>
-                      Sign in using your registered client user credentials.
-                    </p>
-
-                    <form onSubmit={handleClientLogin} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                      <div>
-                        <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#e5e7eb', marginBottom: '4px' }}>
-                          USERNAME
-                        </label>
-                        <input
-                          type="text"
-                          placeholder="client_username"
-                          value={clientUsername}
-                          onChange={(e) => setClientUsername(e.target.value)}
-                          style={{
-                            width: '100%',
-                            padding: '10px 12px',
-                            background: 'rgba(10, 8, 10, 0.8)',
-                            border: '1px solid rgba(255,255,255,0.12)',
-                            borderRadius: '8px',
-                            color: '#ffffff',
-                            fontSize: '13px',
-                            boxSizing: 'border-box',
-                          }}
-                          required
-                        />
-                      </div>
-
-                      <div>
-                        <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#e5e7eb', marginBottom: '4px' }}>
-                          PASSWORD
-                        </label>
-                        <input
-                          type="password"
-                          placeholder="Enter your password"
-                          value={clientPassword}
-                          onChange={(e) => setClientPassword(e.target.value)}
-                          style={{
-                            width: '100%',
-                            padding: '10px 12px',
-                            background: 'rgba(10, 8, 10, 0.8)',
-                            border: '1px solid rgba(255,255,255,0.12)',
-                            borderRadius: '8px',
-                            color: '#ffffff',
-                            fontSize: '13px',
-                            boxSizing: 'border-box',
-                          }}
-                          required
-                        />
-                      </div>
-
-                      <button
-                        type="submit"
-                        disabled={loading}
-                        style={{
-                          marginTop: '6px',
-                          padding: '12px',
-                          background: 'linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)',
-                          color: '#ffffff',
-                          border: 'none',
-                          borderRadius: '8px',
-                          fontSize: '14px',
-                          fontWeight: 700,
-                          cursor: loading ? 'not-allowed' : 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '8px',
-                        }}
-                      >
-                        {loading ? <RefreshCw size={15} className="animate-spin" /> : <LogIn size={15} />}
-                        {loading ? 'Authenticating...' : 'Sign In as Client'}
-                      </button>
-                    </form>
-                  </div>
-                )}
-
-                {/* Submode 3: Developer / Admin Portal Registration */}
-                {authMode === 'dev_register' && (
-                  <div>
-                    <div style={{ marginBottom: '6px' }}>
-                      <h2 style={{ fontSize: '18px', fontWeight: 800, margin: 0, color: '#fca5a5' }}>
-                        Developer Account Registration
-                      </h2>
-                    </div>
-                    <p style={{ color: '#9ca3af', fontSize: '13px', marginBottom: '18px' }}>
-                      Create a master developer account to manage apps, create license keys, and view telemetry.
-                    </p>
-
-                    <form onSubmit={handleDevRegister} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                      <div>
-                        <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#e5e7eb', marginBottom: '4px' }}>
-                          USERNAME
-                        </label>
-                        <input
-                          type="text"
-                          placeholder="admin_developer"
-                          value={devUsername}
-                          onChange={(e) => setDevUsername(e.target.value)}
-                          style={{
-                            width: '100%',
-                            padding: '10px 12px',
-                            background: 'rgba(10, 8, 10, 0.8)',
-                            border: '1px solid rgba(255,255,255,0.12)',
-                            borderRadius: '8px',
-                            color: '#ffffff',
-                            fontSize: '13px',
-                            boxSizing: 'border-box',
-                          }}
-                          required
-                        />
-                      </div>
-
-                      <div>
-                        <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#e5e7eb', marginBottom: '4px' }}>
-                          EMAIL
-                        </label>
-                        <input
-                          type="email"
-                          placeholder="admin@example.com"
-                          value={devEmail}
-                          onChange={(e) => setDevEmail(e.target.value)}
-                          style={{
-                            width: '100%',
-                            padding: '10px 12px',
-                            background: 'rgba(10, 8, 10, 0.8)',
-                            border: '1px solid rgba(255,255,255,0.12)',
-                            borderRadius: '8px',
-                            color: '#ffffff',
-                            fontSize: '13px',
-                            boxSizing: 'border-box',
-                          }}
-                          required
-                        />
-                      </div>
-
-                      <div>
-                        <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#e5e7eb', marginBottom: '4px' }}>
-                          PASSWORD
-                        </label>
-                        <input
-                          type="password"
-                          placeholder="At least 4 characters"
-                          value={devPassword}
-                          onChange={(e) => setDevPassword(e.target.value)}
-                          style={{
-                            width: '100%',
-                            padding: '10px 12px',
-                            background: 'rgba(10, 8, 10, 0.8)',
-                            border: '1px solid rgba(255,255,255,0.12)',
-                            borderRadius: '8px',
-                            color: '#ffffff',
-                            fontSize: '13px',
-                            boxSizing: 'border-box',
-                          }}
-                          required
-                        />
-                      </div>
-
-                      <button
-                        type="submit"
-                        disabled={loading}
-                        style={{
-                          marginTop: '6px',
-                          padding: '12px',
-                          background: 'linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)',
-                          color: '#ffffff',
-                          border: 'none',
-                          borderRadius: '8px',
-                          fontSize: '14px',
-                          fontWeight: 700,
-                          cursor: loading ? 'not-allowed' : 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '8px',
-                        }}
-                      >
-                        {loading ? <RefreshCw size={15} className="animate-spin" /> : <Shield size={15} />}
-                        {loading ? 'Creating Account...' : 'Register Developer & Open Dashboard'}
-                      </button>
-                    </form>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div style={{
-                width: '100%',
-                maxWidth: '600px',
-                background: 'rgba(24, 18, 22, 0.85)',
-                border: '1px solid #10b981',
-                borderRadius: '20px',
-                padding: '36px',
-                backdropFilter: 'blur(20px)',
-                boxShadow: '0 20px 50px rgba(0, 0, 0, 0.6), 0 0 30px rgba(16, 185, 129, 0.15)',
-              }}>
-                <div style={{ textAlign: 'center', marginBottom: '24px' }}>
-                  <div style={{
-                    width: '56px',
-                    height: '56px',
-                    borderRadius: '50%',
-                    background: 'rgba(16, 185, 129, 0.15)',
-                    border: '1px solid #10b981',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    margin: '0 auto 16px',
-                  }}>
-                    <CheckCircle2 size={30} color="#10b981" />
-                  </div>
-                  <h2 style={{ fontSize: '22px', fontWeight: 800, color: '#10b981', marginBottom: '4px' }}>
-                    Access Granted & Account Active
-                  </h2>
-                  <p style={{ color: '#9ca3af', fontSize: '13px' }}>
-                    {activationData.username ? `Signed in as ${activationData.username}` : 'Your license is verified and bound to this hardware.'}
-                  </p>
-                </div>
-
-                <div style={{
-                  background: 'rgba(10, 8, 10, 0.6)',
-                  borderRadius: '12px',
-                  padding: '16px',
-                  marginBottom: '20px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '10px',
-                }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
-                    <span style={{ color: '#9ca3af' }}>Subscription Level:</span>
-                    <span style={{ color: '#f87171', fontWeight: 700 }}>Tier {activationData.level || 1}</span>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
-                    <span style={{ color: '#9ca3af' }}>Status:</span>
-                    <span style={{ color: '#10b981', fontWeight: 700 }}>ACTIVE</span>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
-                    <span style={{ color: '#9ca3af' }}>Expiration:</span>
-                    <span>{activationData.expires_at ? new Date(activationData.expires_at).toLocaleDateString() : 'Lifetime Access'}</span>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
-                    <span style={{ color: '#9ca3af' }}>Bound Hardware ID:</span>
-                    <code style={{ color: '#f87171', fontSize: '11px' }}>{hwid.substring(0, 16)}...</code>
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  <a
-                    href="#download"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      toast.error('No download available. Configure a version in the dashboard.');
-                    }}
-                    style={{
-                      padding: '14px',
-                      background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                      color: '#ffffff',
-                      textDecoration: 'none',
-                      borderRadius: '12px',
-                      fontSize: '14px',
-                      fontWeight: 700,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '10px',
-                      boxShadow: '0 8px 25px rgba(16, 185, 129, 0.4)',
-                    }}
-                  >
-                    <Download size={18} />
-                    Download Authorized Client Build
-                  </a>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      localStorage.removeItem('darkauth_saved_activation');
-                      setActivationData(null);
-                      setLicenseKey('');
-                      setClientUsername('');
-                      setClientPassword('');
-                    }}
-                    style={{
-                      padding: '10px',
-                      background: 'transparent',
-                      color: '#9ca3af',
-                      border: '1px solid rgba(255,255,255,0.1)',
-                      borderRadius: '10px',
-                      fontSize: '13px',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    Switch Account / Redeem Another Key
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* TAB 2: FEATURES & SECURITY */}
+        {/* TAB: FEATURES & SECURITY */}
         {activeTab === 'features' && (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
-            <div style={{ background: 'rgba(24, 18, 22, 0.7)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '16px', padding: '24px' }}>
-              <Cpu size={28} color="#ef4444" style={{ marginBottom: '12px' }} />
-              <h3 style={{ fontSize: '18px', fontWeight: 700, marginBottom: '8px' }}>HWID Locking</h3>
-              <p style={{ color: '#9ca3af', fontSize: '14px', lineHeight: 1.6 }}>
-                Machine-level fingerprinting binds licenses to user devices, with admin cooldowns and self-service reset requests.
-              </p>
-            </div>
-
-            <div style={{ background: 'rgba(24, 18, 22, 0.7)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '16px', padding: '24px' }}>
-              <Database size={28} color="#ef4444" style={{ marginBottom: '12px' }} />
-              <h3 style={{ fontSize: '18px', fontWeight: 700, marginBottom: '8px' }}>Cloud Variables</h3>
-              <p style={{ color: '#9ca3af', fontSize: '14px', lineHeight: 1.6 }}>
-                Host runtime secrets, server endpoints, and license-restricted strings remotely in the cloud without hardcoding.
-              </p>
-            </div>
-
-            <div style={{ background: 'rgba(24, 18, 22, 0.7)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '16px', padding: '24px' }}>
-              <Lock size={28} color="#ef4444" style={{ marginBottom: '12px' }} />
-              <h3 style={{ fontSize: '18px', fontWeight: 700, marginBottom: '8px' }}>Anti-Tamper Checks</h3>
-              <p style={{ color: '#9ca3af', fontSize: '14px', lineHeight: 1.6 }}>
-                Verifies binary SHA-256 checksums on initialization to block cracked, patched, or modified executables.
-              </p>
-            </div>
-
-            <div style={{ background: 'rgba(24, 18, 22, 0.7)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '16px', padding: '24px' }}>
-              <Bell size={28} color="#ef4444" style={{ marginBottom: '12px' }} />
-              <h3 style={{ fontSize: '18px', fontWeight: 700, marginBottom: '8px' }}>Webhook Alerts</h3>
-              <p style={{ color: '#9ca3af', fontSize: '14px', lineHeight: 1.6 }}>
-                Instant notifications to Discord with rich embeds whenever a license is redeemed, registered, or banned.
-              </p>
-            </div>
-
-            <div style={{ background: 'rgba(24, 18, 22, 0.7)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '16px', padding: '24px' }}>
-              <RefreshCw size={28} color="#ef4444" style={{ marginBottom: '12px' }} />
-              <h3 style={{ fontSize: '18px', fontWeight: 700, marginBottom: '8px' }}>Auto-Updater Engine</h3>
-              <p style={{ color: '#9ca3af', fontSize: '14px', lineHeight: 1.6 }}>
-                Deliver binary updates seamlessly with support for forced updates and grace-period reminder notices.
-              </p>
-            </div>
-
-            <div style={{ background: 'rgba(24, 18, 22, 0.7)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '16px', padding: '24px' }}>
-              <Users size={28} color="#ef4444" style={{ marginBottom: '12px' }} />
-              <h3 style={{ fontSize: '18px', fontWeight: 700, marginBottom: '8px' }}>End-User Accounts</h3>
-              <p style={{ color: '#9ca3af', fontSize: '14px', lineHeight: 1.6 }}>
-                Full username + password auth inside your client applications, linked to product license tiers.
-              </p>
-            </div>
+            {[
+              { icon: Cpu, title: 'HWID Locking', desc: 'Machine-level fingerprinting binds licenses to user devices, with admin cooldowns and self-service reset requests.' },
+              { icon: Database, title: 'Cloud Variables', desc: 'Host runtime secrets, server endpoints, and license-restricted strings remotely in the cloud without hardcoding.' },
+              { icon: Lock, title: 'Anti-Tamper Checks', desc: 'Verifies binary SHA-256 checksums on initialization to block cracked, patched, or modified executables.' },
+              { icon: Bell, title: 'Webhook Alerts', desc: 'Instant notifications to Discord with rich embeds whenever a license is activated, registered, or banned.' },
+              { icon: RefreshCw, title: 'Auto-Updater Engine', desc: 'Deliver binary updates seamlessly with support for forced updates and grace-period reminder notices.' },
+              { icon: Users, title: 'End-User Accounts', desc: 'Full username + password auth inside your client applications, linked to product license tiers.' },
+              { icon: Zap, title: '14 Language SDKs', desc: 'Python, C#, C++, Rust, Go, Java, JavaScript, Unity, Lua, PHP, Ruby, Perl, React, Vue.' },
+              { icon: Terminal, title: 'REST API', desc: 'Full developer API for licensing, validation, automation and analytics with detailed documentation.' },
+            ].map((f, i) => (
+              <div key={i} style={{ background: 'rgba(24, 18, 22, 0.7)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '16px', padding: '24px' }}>
+                <f.icon size={28} color="#ef4444" style={{ marginBottom: '12px' }} />
+                <h3 style={{ fontSize: '18px', fontWeight: 700, marginBottom: '8px' }}>{f.title}</h3>
+                <p style={{ color: '#9ca3af', fontSize: '14px', lineHeight: 1.6 }}>{f.desc}</p>
+              </div>
+            ))}
           </div>
         )}
 
-        {/* TAB 3: 14 LANGUAGE SDKS */}
+        {/* TAB: SDKs */}
         {activeTab === 'sdks' && (
           <div style={{
             background: 'rgba(24, 18, 22, 0.75)',
@@ -975,7 +435,7 @@ local res = auth:license("XXXXX-XXXXX-XXXXX-XXXXX")`,
               <button
                 onClick={() => {
                   navigator.clipboard.writeText(sdkSnippets[selectedSdk]);
-                  toast.success('Snippet copied to clipboard!');
+                  toast.success('Snippet copied!');
                 }}
                 style={{
                   position: 'absolute',
@@ -990,13 +450,13 @@ local res = auth:license("XXXXX-XXXXX-XXXXX-XXXXX")`,
                   cursor: 'pointer',
                 }}
               >
-                Copy
+                <Copy size={14} />
               </button>
             </div>
           </div>
         )}
 
-        {/* TAB 4: PRICING / TIERS */}
+        {/* TAB: PRICING */}
         {activeTab === 'pricing' && (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px' }}>
             <div style={{ background: 'rgba(24, 18, 22, 0.7)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '20px', padding: '32px' }}>
@@ -1011,7 +471,7 @@ local res = auth:license("XXXXX-XXXXX-XXXXX-XXXXX")`,
               </ul>
               <button
                 type="button"
-                onClick={() => { setActiveTab('client'); setAuthMode('dev_register'); }}
+                onClick={() => setActiveTab('features')}
                 style={{ width: '100%', padding: '12px', background: '#262626', color: '#fff', border: 'none', borderRadius: '10px', fontWeight: 600, cursor: 'pointer' }}
               >
                 Deploy Now
@@ -1031,7 +491,7 @@ local res = auth:license("XXXXX-XXXXX-XXXXX-XXXXX")`,
               </ul>
               <button
                 type="button"
-                onClick={() => { setActiveTab('client'); setAuthMode('dev_register'); }}
+                onClick={() => setActiveTab('features')}
                 style={{ width: '100%', padding: '12px', background: '#ef4444', color: '#fff', border: 'none', borderRadius: '10px', fontWeight: 700, cursor: 'pointer' }}
               >
                 Get Started
@@ -1039,7 +499,6 @@ local res = auth:license("XXXXX-XXXXX-XXXXX-XXXXX")`,
             </div>
           </div>
         )}
-
       </main>
 
       {/* Footer */}
@@ -1050,7 +509,7 @@ local res = auth:license("XXXXX-XXXXX-XXXXX-XXXXX")`,
         color: '#6b7280',
         fontSize: '12px',
       }}>
-        DARK-AUTH • All-In-One Authentication & Licensing Platform • 100% Free & Open Source
+        DARK-AUTH &bull; All-In-One Authentication & Licensing Platform &bull; 100% Free &amp; Open Source
       </footer>
     </div>
   );
