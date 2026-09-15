@@ -200,7 +200,7 @@ export default function AppSettings() {
   ];
 
   return (
-    <div style={{ maxWidth: 900 }}>
+    <div style={{ maxWidth: 1200 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 24 }}>
         <button
           onClick={() => navigate('/apps')}
