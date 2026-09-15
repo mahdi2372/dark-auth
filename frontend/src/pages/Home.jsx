@@ -13,7 +13,7 @@ export default function Home() {
   const { register: authRegister, login: authLogin } = useAuth();
 
   const [activeTab, setActiveTab] = useState('client'); // 'client' | 'features' | 'sdks' | 'pricing'
-  const [authMode, setAuthMode] = useState('redeem'); // 'redeem' | 'client_register' | 'client_login' | 'dev_register'
+  const [authMode, setAuthMode] = useState('client_register'); // 'client_register' | 'client_login' | 'dev_register'
 
   // Common fields
   const [licenseKey, setLicenseKey] = useState('');
@@ -43,40 +43,7 @@ export default function Home() {
     }
   }, []);
 
-  // 1. Direct Key Redemption
-  const handleActivateKey = async (e) => {
-    e.preventDefault();
-    if (!licenseKey.trim()) return toast.error('Please enter a license key.');
-
-    setLoading(true);
-    try {
-      const initRes = await fetch('/api/v2/init', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ app_id: import.meta.env.VITE_CLIENT_PORTAL_APP_ID || '', secret: import.meta.env.VITE_CLIENT_PORTAL_SECRET || '', version: '1.0.0' }),
-      });
-      const initData = await initRes.json();
-      const sessionToken = initData.session_token;
-
-      const licRes = await fetch('/api/v2/license', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ session_token: sessionToken, key: licenseKey.trim(), hwid }),
-      });
-      const licData = await licRes.json();
-      if (!licData.success) throw new Error(licData.message || licData.error || 'Invalid license key');
-
-      setActivationData(licData);
-      localStorage.setItem('darkauth_saved_activation', JSON.stringify(licData));
-      toast.success('License validated! Access unlocked.');
-    } catch (err) {
-      toast.error(err.message || 'Activation failed');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // 2. Client Registration with License Key (KeyAuth / Authly style)
+  // 1. Client Registration with License Key (KeyAuth / Authly style)
   const handleClientRegister = async (e) => {
     e.preventDefault();
     if (!clientUsername.trim() || !clientPassword || !licenseKey.trim()) {
@@ -462,7 +429,7 @@ local res = auth:license("XXXXX-XXXXX-XXXXX-XXXXX")`,
                 {/* Auth sub-mode selector */}
                 <div style={{
                   display: 'grid',
-                  gridTemplateColumns: 'repeat(4, 1fr)',
+                  gridTemplateColumns: 'repeat(3, 1fr)',
                   gap: '4px',
                   background: 'rgba(10, 8, 10, 0.7)',
                   padding: '4px',
@@ -471,7 +438,6 @@ local res = auth:license("XXXXX-XXXXX-XXXXX-XXXXX")`,
                   border: '1px solid rgba(255, 255, 255, 0.08)',
                 }}>
                   {[
-                    { id: 'redeem', label: 'Redeem Key' },
                     { id: 'client_register', label: 'Client Register' },
                     { id: 'client_login', label: 'Client Login' },
                     { id: 'dev_register', label: 'Dev Sign-Up' },
@@ -498,85 +464,7 @@ local res = auth:license("XXXXX-XXXXX-XXXXX-XXXXX")`,
                   ))}
                 </div>
 
-                {/* Submode 1: Redeem Key */}
-                {authMode === 'redeem' && (
-                  <div>
-                    <div style={{ marginBottom: '6px' }}>
-                      <h2 style={{ fontSize: '18px', fontWeight: 800, margin: 0, color: '#fca5a5' }}>
-                        Redeem Product Key
-                      </h2>
-                    </div>
-                    <p style={{ color: '#9ca3af', fontSize: '13px', marginBottom: '18px' }}>
-                      Enter your license key to bind to this machine and unlock the build.
-                    </p>
-
-                    <form onSubmit={handleActivateKey} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                      <div>
-                        <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#e5e7eb', marginBottom: '6px' }}>
-                          LICENSE KEY
-                        </label>
-                        <input
-                          type="text"
-                          placeholder="XXXXX-XXXXX-XXXXX-XXXXX"
-                          value={licenseKey}
-                          onChange={(e) => setLicenseKey(e.target.value)}
-                          style={{
-                            width: '100%',
-                            padding: '12px 14px',
-                            background: 'rgba(10, 8, 10, 0.8)',
-                            border: '1px solid rgba(239, 68, 68, 0.3)',
-                            borderRadius: '10px',
-                            color: '#ffffff',
-                            fontSize: '14px',
-                            fontFamily: 'monospace',
-                            outline: 'none',
-                            boxSizing: 'border-box',
-                          }}
-                          required
-                        />
-                      </div>
-
-                      <div style={{
-                        background: 'rgba(10, 8, 10, 0.5)',
-                        border: '1px solid rgba(255,255,255,0.06)',
-                        borderRadius: '8px',
-                        padding: '10px 14px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                      }}>
-                        <span style={{ fontSize: '12px', color: '#9ca3af' }}>Your Device HWID:</span>
-                        <code style={{ fontSize: '11px', color: '#f87171', fontFamily: 'monospace' }}>
-                          {hwid.substring(0, 16)}...
-                        </code>
-                      </div>
-
-                      <button
-                        type="submit"
-                        disabled={loading}
-                        style={{
-                          padding: '14px',
-                          background: 'linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)',
-                          color: '#ffffff',
-                          border: 'none',
-                          borderRadius: '10px',
-                          fontSize: '14px',
-                          fontWeight: 700,
-                          cursor: loading ? 'not-allowed' : 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '8px',
-                        }}
-                      >
-                        {loading ? <RefreshCw size={16} className="animate-spin" /> : <Shield size={16} />}
-                        {loading ? 'Validating...' : 'Redeem & Unlock Software'}
-                      </button>
-                    </form>
-                  </div>
-                )}
-
-                {/* Submode 2: Client Registration (KeyAuth / Authly User + Key) */}
+                {/* Submode 1: Client Registration (KeyAuth / Authly User + Key) */}
                 {authMode === 'client_register' && (
                   <div>
                     <div style={{ marginBottom: '6px' }}>
@@ -685,7 +573,7 @@ local res = auth:license("XXXXX-XXXXX-XXXXX-XXXXX")`,
                   </div>
                 )}
 
-                {/* Submode 3: Client Login (KeyAuth Style) */}
+                {/* Submode 2: Client Login (KeyAuth Style) */}
                 {authMode === 'client_login' && (
                   <div>
                     <h2 style={{ fontSize: '18px', fontWeight: 800, margin: '0 0 6px 0', color: '#fca5a5' }}>
@@ -768,7 +656,7 @@ local res = auth:license("XXXXX-XXXXX-XXXXX-XXXXX")`,
                   </div>
                 )}
 
-                {/* Submode 4: Developer / Admin Portal Registration */}
+                {/* Submode 3: Developer / Admin Portal Registration */}
                 {authMode === 'dev_register' && (
                   <div>
                     <div style={{ marginBottom: '6px' }}>
