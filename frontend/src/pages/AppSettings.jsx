@@ -262,114 +262,185 @@ export default function AppSettings() {
       </div>
 
       {activeTab === 'config' && (
-        <div>
-          <div style={cardStyle}>
-            <div style={cardTitleStyle}>
-              <ShieldCheck size={18} style={{ color: '#7c5bf5' }} />
-              Access Controls
-            </div>
-            {[
-              { key: 'isActive', label: 'App Status', desc: 'Enable or disable the application' },
-              { key: 'hwidLock', label: 'HWID Lock', desc: 'Lock users to a value from your user\'s device' },
-              { key: 'forceHwid', label: 'Force HWID', desc: 'Prevent users from logging in with a black HWID' },
-              { key: 'blockVpns', label: 'Block VPNs', desc: 'Prevent users from logging in from VPN' },
-              { key: 'hashCheck', label: 'Hash Check', desc: 'Checks whether the application has been modified' },
-              { key: 'blockLeakedPasswords', label: 'Block Leaked Passwords', desc: 'Prevent use of passwords found in data breaches' },
-              { key: 'tokenValidation', label: 'Token Validation', desc: 'Prevents users from accessing without valid token' },
-            ].map((item) => (
-              <div
-                key={item.key}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '14px 0',
-                  borderBottom: '1px solid rgba(255,255,255,0.04)',
-                }}
-              >
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: '#e5e7eb' }}>{item.label}</div>
-                  <div style={descStyle}>{item.desc}</div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, alignItems: 'start' }}>
+          {/* LEFT COLUMN */}
+          <div>
+            {/* Access Controls */}
+            <div style={cardStyle}>
+              <div style={cardTitleStyle}>
+                <ShieldCheck size={18} style={{ color: '#7c5bf5' }} />
+                Access Controls
+              </div>
+              {[
+                { key: 'isActive', label: 'App Status', desc: 'Enable or disable the application, preventing users from logging in' },
+                { key: 'hwidLock', label: 'HWID Lock', desc: 'Lock users to a value from your user\'s device which only changes if they reinstall their operating system. Use this to prevent people from sharing your product.' },
+                { key: 'forceHwid', label: 'Force HWID', desc: 'Prevent users from logging in with a black HWID (disable this for web based products, i.e. PHP)' },
+                { key: 'blockVpns', label: 'Block VPNs', desc: 'Prevent users from logging in from a Virtual Private Network (VPN)' },
+                { key: 'hashCheck', label: 'Hash Check', desc: 'Checks whether the application has been modified since the last time you pressed the reset hash button. Used to prevent people from altering/bypassing your application.' },
+                { key: 'blockLeakedPasswords', label: 'Block Leaked Passwords', desc: 'Prevent users from registering using a leaked password.' },
+                { key: 'tokenValidation', label: 'Token Validation', desc: 'Prevents users from accessing your program without a valid token. Note: This is not the same as a license. Licenses allow users to login/register, while tokens allow users to access the application entirely.' },
+              ].map((item) => (
+                <div
+                  key={item.key}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '14px 0',
+                    borderBottom: '1px solid rgba(255,255,255,0.04)',
+                  }}
+                >
+                  <div style={{ flex: 1, paddingRight: 16 }}>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: '#e5e7eb' }}>{item.label}</div>
+                    <div style={descStyle}>{item.desc}</div>
+                  </div>
+                  <Toggle checked={form[item.key]} onChange={() => handleToggle(item.key)} />
                 </div>
-                <Toggle checked={form[item.key]} onChange={() => handleToggle(item.key)} />
+              ))}
+            </div>
+
+            {/* Hash Management */}
+            <div style={cardStyle}>
+              <div style={cardTitleStyle}>
+                <Hash size={18} style={{ color: '#7c5bf5' }} />
+                Hash Management
               </div>
-            ))}
+              <div style={{ display: 'grid', gap: 12 }}>
+                <button
+                  onClick={handleAddHash}
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    background: 'linear-gradient(135deg, #3b82f6, #2563eb)',
+                    border: 'none',
+                    borderRadius: 8,
+                    color: '#fff',
+                    fontSize: 13,
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    fontFamily: 'inherit',
+                    transition: '0.2s',
+                  }}
+                >
+                  Add Hash
+                </button>
+                <div style={{ fontSize: 13, fontWeight: 600, color: '#e5e7eb', marginTop: 4 }}>Delete Existing Hashes</div>
+                <button
+                  onClick={handleResetHashes}
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    background: 'linear-gradient(135deg, #ef4444, #dc2626)',
+                    border: 'none',
+                    borderRadius: 8,
+                    color: '#fff',
+                    fontSize: 13,
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    fontFamily: 'inherit',
+                    transition: '0.2s',
+                  }}
+                >
+                  Reset All Hashes
+                </button>
+              </div>
+              {form.appHash && (
+                <div style={{ marginTop: 12 }}>
+                  <label style={labelStyle}>Current Hash</label>
+                  <div style={{
+                    padding: '10px 14px',
+                    background: '#0a0a0f',
+                    border: '1px solid rgba(255,255,255,0.06)',
+                    borderRadius: 8,
+                    fontSize: 12,
+                    fontFamily: 'monospace',
+                    color: '#00d4aa',
+                    wordBreak: 'break-all',
+                  }}>
+                    {form.appHash}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
-          <div style={cardStyle}>
-            <div style={cardTitleStyle}>
-              <Download size={18} style={{ color: '#7c5bf5' }} />
-              Download & Update
-            </div>
-            <div style={{ display: 'grid', gap: 16 }}>
-              <div>
-                <label style={labelStyle}>Application Version</label>
-                <input
-                  style={inputStyle}
-                  value={form.applicationVersion}
-                  onChange={e => handleChange('applicationVersion', e.target.value)}
-                  placeholder="1.0.0"
-                />
+          {/* RIGHT COLUMN */}
+          <div>
+            {/* Download & Update */}
+            <div style={cardStyle}>
+              <div style={cardTitleStyle}>
+                <Download size={18} style={{ color: '#7c5bf5' }} />
+                Download & Update
               </div>
-              <div>
-                <label style={labelStyle}>Auto-Update Download Link</label>
-                <input
-                  style={inputStyle}
-                  value={form.autoUpdateLink}
-                  onChange={e => handleChange('autoUpdateLink', e.target.value)}
-                  placeholder="https://example.com/download/latest"
-                />
-              </div>
-            </div>
-          </div>
-
-          <div style={cardStyle}>
-            <div style={cardTitleStyle}>
-              <MessageSquare size={18} style={{ color: '#7c5bf5' }} />
-              Logging & Integration
-            </div>
-            <div style={{ display: 'grid', gap: 16 }}>
-              <div>
-                <label style={labelStyle}>Discord Webhook Link</label>
-                <input
-                  style={inputStyle}
-                  value={form.discordWebhook}
-                  onChange={e => handleChange('discordWebhook', e.target.value)}
-                  placeholder="https://discord.com/api/webhooks/..."
-                />
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'grid', gap: 16 }}>
                 <div>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: '#e5e7eb' }}>Log IP</div>
-                  <div style={descStyle}>Record IP addresses in audit logs</div>
+                  <label style={labelStyle}>Application Version</label>
+                  <input
+                    style={inputStyle}
+                    value={form.applicationVersion}
+                    onChange={e => handleChange('applicationVersion', e.target.value)}
+                    placeholder="1.0.0"
+                  />
                 </div>
-                <Toggle checked={form.logIp} onChange={() => handleToggle('logIp')} />
+                <div>
+                  <label style={labelStyle}>Auto-Update Download Link</label>
+                  <input
+                    style={inputStyle}
+                    value={form.autoUpdateLink}
+                    onChange={e => handleChange('autoUpdateLink', e.target.value)}
+                    placeholder="https://example.com/download/latest"
+                  />
+                </div>
               </div>
             </div>
-          </div>
 
-          <div style={cardStyle}>
-            <div style={cardTitleStyle}>
-              <ShieldCheck size={18} style={{ color: '#7c5bf5' }} />
-              Security & User Restriction
-            </div>
-            <div style={{ display: 'grid', gap: 16 }}>
-              <div>
-                <label style={labelStyle}>Minimum HWID Length</label>
-                <input
-                  style={inputStyle}
-                  type="number"
-                  min={0}
-                  value={form.minHwidLength}
-                  onChange={e => handleChange('minHwidLength', parseInt(e.target.value) || 0)}
-                />
+            {/* Logging & Integration */}
+            <div style={cardStyle}>
+              <div style={cardTitleStyle}>
+                <MessageSquare size={18} style={{ color: '#7c5bf5' }} />
+                Logging & Integration
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <div style={{ display: 'grid', gap: 16 }}>
+                <div>
+                  <label style={labelStyle}>Discord Webhook Link</label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <input
+                      style={inputStyle}
+                      value={form.discordWebhook}
+                      onChange={e => handleChange('discordWebhook', e.target.value)}
+                      placeholder="https://discord.com/api/webhooks/..."
+                    />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                      <Toggle checked={form.logIp} onChange={() => handleToggle('logIp')} />
+                      <span style={{ fontSize: 13, color: '#9ca3af', whiteSpace: 'nowrap' }}>Log IP</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Security & User Restriction */}
+            <div style={cardStyle}>
+              <div style={cardTitleStyle}>
+                <ShieldCheck size={18} style={{ color: '#7c5bf5' }} />
+                Security & User Restriction
+              </div>
+              <div style={{ display: 'grid', gap: 16 }}>
+                <div>
+                  <label style={labelStyle}>Minimum HWID Length</label>
+                  <input
+                    style={inputStyle}
+                    type="number"
+                    min={0}
+                    value={form.minHwidLength}
+                    onChange={e => handleChange('minHwidLength', parseInt(e.target.value) || 0)}
+                  />
+                </div>
                 <div>
                   <label style={labelStyle}>HWID Reset Cooldown</label>
-                  <div style={{ display: 'flex', gap: 8 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                     <select
-                      style={{ ...selectStyle, width: 120 }}
+                      style={selectStyle}
                       value={form.hwidResetUnit}
                       onChange={e => handleChange('hwidResetUnit', e.target.value)}
                     >
@@ -377,7 +448,7 @@ export default function AppSettings() {
                       <option value="days">Days</option>
                     </select>
                     <input
-                      style={{ ...inputStyle, flex: 1 }}
+                      style={inputStyle}
                       type="number"
                       min={0}
                       value={form.hwidResetValue}
@@ -385,211 +456,144 @@ export default function AppSettings() {
                     />
                   </div>
                 </div>
-              </div>
-              <div>
-                <label style={labelStyle}>Minimum Username Length</label>
-                <input
-                  style={inputStyle}
-                  type="number"
-                  min={1}
-                  value={form.minUsernameLength}
-                  onChange={e => handleChange('minUsernameLength', parseInt(e.target.value) || 1)}
-                />
-              </div>
-            </div>
-          </div>
-
-          <div style={cardStyle}>
-            <div style={cardTitleStyle}>
-              <Clock size={18} style={{ color: '#7c5bf5' }} />
-              Session Management
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-              <div>
-                <label style={labelStyle}>Session Expiry Unit</label>
-                <select
-                  style={selectStyle}
-                  value={form.sessionExpiryUnit}
-                  onChange={e => handleChange('sessionExpiryUnit', e.target.value)}
-                >
-                  <option value="Minutes">Minutes</option>
-                  <option value="Hours">Hours</option>
-                  <option value="Days">Days</option>
-                </select>
-              </div>
-              <div>
-                <label style={labelStyle}>Session Expiry Duration</label>
-                <input
-                  style={inputStyle}
-                  type="number"
-                  min={1}
-                  value={form.sessionExpiryValue}
-                  onChange={e => handleChange('sessionExpiryValue', parseInt(e.target.value) || 1)}
-                />
-              </div>
-            </div>
-          </div>
-
-          <div style={cardStyle}>
-            <div style={cardTitleStyle}>
-              <Hash size={18} style={{ color: '#7c5bf5' }} />
-              Hash Management
-            </div>
-            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-              <button
-                onClick={handleAddHash}
-                style={{
-                  padding: '10px 20px',
-                  background: 'rgba(124,91,245,0.15)',
-                  border: '1px solid rgba(124,91,245,0.3)',
-                  borderRadius: 8,
-                  color: '#7c5bf5',
-                  fontSize: 13,
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  fontFamily: 'inherit',
-                  transition: '0.2s',
-                }}
-                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(124,91,245,0.25)'; }}
-                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(124,91,245,0.15)'; }}
-              >
-                Add Hash
-              </button>
-              <button
-                onClick={handleResetHashes}
-                style={{
-                  padding: '10px 20px',
-                  background: 'rgba(255,71,87,0.1)',
-                  border: '1px solid rgba(255,71,87,0.2)',
-                  borderRadius: 8,
-                  color: '#ff4757',
-                  fontSize: 13,
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  fontFamily: 'inherit',
-                  transition: '0.2s',
-                }}
-                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,71,87,0.2)'; }}
-                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,71,87,0.1)'; }}
-              >
-                Reset All Hashes
-              </button>
-            </div>
-            {form.appHash && (
-              <div style={{ marginTop: 12 }}>
-                <label style={labelStyle}>Current Hash</label>
-                <div style={{
-                  padding: '10px 14px',
-                  background: '#0a0a0f',
-                  border: '1px solid rgba(255,255,255,0.06)',
-                  borderRadius: 8,
-                  fontSize: 12,
-                  fontFamily: 'monospace',
-                  color: '#00d4aa',
-                  wordBreak: 'break-all',
-                }}>
-                  {form.appHash}
+                <div>
+                  <label style={labelStyle}>Minimum Username Length</label>
+                  <input
+                    style={inputStyle}
+                    type="number"
+                    min={1}
+                    value={form.minUsernameLength}
+                    onChange={e => handleChange('minUsernameLength', parseInt(e.target.value) || 1)}
+                  />
                 </div>
               </div>
-            )}
-          </div>
-
-          <div style={cardStyle}>
-            <div style={cardTitleStyle}>
-              <Globe size={18} style={{ color: '#7c5bf5' }} />
-              Custom Domain — API
             </div>
-            <div style={{ display: 'grid', gap: 16 }}>
-              <div>
-                <label style={labelStyle}>Current Custom Domain</label>
-                <div style={{
-                  padding: '10px 14px',
-                  background: '#0a0a0f',
-                  border: '1px solid rgba(255,255,255,0.06)',
-                  borderRadius: 8,
-                  fontSize: 13,
-                  color: form.customDomain ? '#00d4aa' : '#6b7280',
-                }}>
-                  {form.customDomain || 'No custom domain set'}
+
+            {/* Session Management */}
+            <div style={cardStyle}>
+              <div style={cardTitleStyle}>
+                <Clock size={18} style={{ color: '#7c5bf5' }} />
+                Session Management
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div>
+                  <label style={labelStyle}>Session Expiry Unit</label>
+                  <select
+                    style={selectStyle}
+                    value={form.sessionExpiryUnit}
+                    onChange={e => handleChange('sessionExpiryUnit', e.target.value)}
+                  >
+                    <option value="Minutes">Minutes</option>
+                    <option value="Hours">Hours</option>
+                    <option value="Days">Days</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={labelStyle}>Session Expiry Duration</label>
+                  <input
+                    style={inputStyle}
+                    type="number"
+                    min={1}
+                    value={form.sessionExpiryValue}
+                    onChange={e => handleChange('sessionExpiryValue', parseInt(e.target.value) || 1)}
+                  />
                 </div>
               </div>
-              <div style={{ display: 'flex', gap: 12 }}>
-                {form.customDomain && (
+            </div>
+
+            {/* Custom Domain */}
+            <div style={cardStyle}>
+              <div style={cardTitleStyle}>
+                <Globe size={18} style={{ color: '#7c5bf5' }} />
+                Custom Domain — API
+              </div>
+              <div style={{ display: 'grid', gap: 16 }}>
+                <div>
+                  <label style={labelStyle}>Current Custom Domain</label>
+                  <div style={{
+                    padding: '10px 14px',
+                    background: '#0a0a0f',
+                    border: '1px solid rgba(255,255,255,0.06)',
+                    borderRadius: 8,
+                    fontSize: 13,
+                    color: form.customDomain ? '#00d4aa' : '#6b7280',
+                  }}>
+                    {form.customDomain || 'You do not have a custom domain set up. Click on \'Add Domain\' to get started'}
+                  </div>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                   <button
                     onClick={() => { handleChange('customDomain', ''); toast.success('Domain removed. Save to apply.'); }}
                     style={{
                       padding: '10px 20px',
-                      background: 'rgba(255,71,87,0.1)',
+                      background: form.customDomain ? 'rgba(255,71,87,0.1)' : 'rgba(255,255,255,0.04)',
                       border: '1px solid rgba(255,71,87,0.2)',
                       borderRadius: 8,
-                      color: '#ff4757',
+                      color: form.customDomain ? '#ff4757' : '#6b7280',
                       fontSize: 13,
                       fontWeight: 600,
                       cursor: 'pointer',
                       fontFamily: 'inherit',
                       transition: '0.2s',
                     }}
-                    onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,71,87,0.2)'; }}
-                    onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,71,87,0.1)'; }}
                   >
                     Remove Domain
                   </button>
-                )}
-                <button
-                  onClick={() => {
-                    const domain = prompt('Enter custom domain (e.g. api.yourdomain.com):');
-                    if (domain) {
-                      handleChange('customDomain', domain);
-                      toast.success('Domain set. Save to apply.');
-                    }
-                  }}
-                  style={{
-                    padding: '10px 20px',
-                    background: 'rgba(124,91,245,0.15)',
-                    border: '1px solid rgba(124,91,245,0.3)',
-                    borderRadius: 8,
-                    color: '#7c5bf5',
-                    fontSize: 13,
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    fontFamily: 'inherit',
-                    transition: '0.2s',
-                  }}
-                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(124,91,245,0.25)'; }}
-                  onMouseLeave={e => { e.currentTarget.style.background = 'rgba(124,91,245,0.15)'; }}
-                >
-                  Add Domain
-                </button>
+                  <button
+                    onClick={() => {
+                      const domain = prompt('Enter custom domain (e.g. api.yourdomain.com):');
+                      if (domain) {
+                        handleChange('customDomain', domain);
+                        toast.success('Domain set. Save to apply.');
+                      }
+                    }}
+                    style={{
+                      padding: '10px 20px',
+                      background: 'linear-gradient(135deg, #7c5bf5, #6344e8)',
+                      border: 'none',
+                      borderRadius: 8,
+                      color: '#fff',
+                      fontSize: 13,
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      fontFamily: 'inherit',
+                      transition: '0.2s',
+                    }}
+                  >
+                    Add Domain
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
 
-          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 40 }}>
-            <button
-              onClick={handleSave}
-              disabled={saving}
-              style={{
-                padding: '12px 32px',
-                background: saving ? '#5a42c2' : 'linear-gradient(135deg, #7c5bf5, #6344e8)',
-                border: 'none',
-                borderRadius: 10,
-                color: '#fff',
-                fontSize: 14,
-                fontWeight: 700,
-                cursor: saving ? 'not-allowed' : 'pointer',
-                fontFamily: 'inherit',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-                boxShadow: '0 4px 16px rgba(124,91,245,0.3)',
-                transition: '0.2s',
-              }}
-              onMouseEnter={e => { if (!saving) { e.currentTarget.style.boxShadow = '0 6px 24px rgba(124,91,245,0.4)'; e.currentTarget.style.transform = 'translateY(-1px)'; } }}
-              onMouseLeave={e => { if (!saving) { e.currentTarget.style.boxShadow = '0 4px 16px rgba(124,91,245,0.3)'; e.currentTarget.style.transform = 'translateY(0)'; } }}
-            >
-              <Save size={16} />
-              {saving ? 'Saving...' : 'Save Changes'}
-            </button>
+            {/* Save Button */}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 20 }}>
+              <button
+                onClick={handleSave}
+                disabled={saving}
+                style={{
+                  padding: '12px 32px',
+                  background: saving ? '#5a42c2' : 'linear-gradient(135deg, #7c5bf5, #6344e8)',
+                  border: 'none',
+                  borderRadius: 10,
+                  color: '#fff',
+                  fontSize: 14,
+                  fontWeight: 700,
+                  cursor: saving ? 'not-allowed' : 'pointer',
+                  fontFamily: 'inherit',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  boxShadow: '0 4px 16px rgba(124,91,245,0.3)',
+                  transition: '0.2s',
+                }}
+                onMouseEnter={e => { if (!saving) { e.currentTarget.style.boxShadow = '0 6px 24px rgba(124,91,245,0.4)'; e.currentTarget.style.transform = 'translateY(-1px)'; } }}
+                onMouseLeave={e => { if (!saving) { e.currentTarget.style.boxShadow = '0 4px 16px rgba(124,91,245,0.3)'; e.currentTarget.style.transform = 'translateY(0)'; } }}
+              >
+                <Save size={16} />
+                {saving ? 'Saving...' : 'Save Changes'}
+              </button>
+            </div>
           </div>
         </div>
       )}
