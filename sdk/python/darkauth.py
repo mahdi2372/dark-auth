@@ -1,7 +1,7 @@
 """
-DARK-AUTH Official Python SDK
-=============================
-KeyAuth / Authly compatible client library.
+DARK-AUTH Official Python SDK v2.0.0
+=====================================
+Client library for the DARK-AUTH V2 API.
 Supports: Init, License Auth, User Login/Register, Cloud Variables, Chat, Logging, HWID lock.
 """
 
@@ -11,9 +11,13 @@ import subprocess
 import uuid
 import requests
 
+VERSION = "2.0.0"
+
 
 class DarkAuth:
-    def __init__(self, app_id: str, secret: str, api_url: str, version: str = "1.0.0"):
+    """Main DARK-AUTH client for Python."""
+
+    def __init__(self, app_id: str, secret: str, api_url: str, version: str = VERSION):
         self.app_id = app_id
         self.secret = secret
         self.version = version
@@ -25,58 +29,84 @@ class DarkAuth:
 
     @staticmethod
     def generate_hwid() -> str:
-        """Collect stable hardware identifiers and return SHA-256 fingerprint."""
+        """Generate a hardware fingerprint using platform-specific identifiers."""
         components = [platform.node(), platform.machine(), platform.processor()]
         try:
-            mac = hex(uuid.getnode())
-            components.append(mac)
+            components.append(hex(uuid.getnode()))
         except Exception:
             pass
-
         if platform.system() == "Windows":
             try:
-                out = subprocess.check_output("wmic csproduct get uuid", shell=True).decode()
-                lines = [l.strip() for l in out.splitlines() if l.strip()]
+                out = subprocess.check_output(
+                    "wmic csproduct get uuid", shell=True
+                ).decode()
+                lines = [line.strip() for line in out.splitlines() if line.strip()]
                 if len(lines) > 1:
                     components.append(lines[1])
             except Exception:
                 pass
-
-        raw = ":".join(components)
-        return hashlib.sha256(raw.encode()).hexdigest()
+        elif platform.system() == "Linux":
+            try:
+                with open("/etc/machine-id") as f:
+                    components.append(f.read().strip())
+            except Exception:
+                pass
+        elif platform.system() == "Darwin":
+            try:
+                out = subprocess.check_output(
+                    ["ioreg", "-rd1", "-c", "IOPlatformExpertDevice"]
+                ).decode()
+                for line in out.splitlines():
+                    if "IOPlatformUUID" in line:
+                        components.append(line.split('"')[-2])
+                        break
+            except Exception:
+                pass
+        return hashlib.sha256(":".join(components).encode()).hexdigest()
 
     @staticmethod
     def file_hash(file_path: str) -> str:
-        """Calculate SHA-256 of file for binary integrity anti-tamper checking."""
+        """Calculate SHA-256 hash of a file for binary integrity checking."""
         h = hashlib.sha256()
         with open(file_path, "rb") as f:
-            while chunk := f.read(8192):
+            for chunk in iter(lambda: f.read(8192), b""):
                 h.update(chunk)
         return h.hexdigest()
 
     def _post(self, endpoint: str, data: dict) -> dict:
-        url = f"{self.api_url}/{endpoint.lstrip('/')}"
+        """Send a POST request to the DARK-AUTH V2 API."""
+        url = f"{self.api_url}/api/v2/{endpoint.lstrip('/')}"
         resp = requests.post(url, json=data, timeout=15)
-        res_json = resp.json()
-        if not res_json.get("success"):
-            raise Exception(f"[{res_json.get('code', 'ERROR')}] {res_json.get('message', 'Request failed')}")
-        return res_json
+        resp.raise_for_status()
+        result = resp.json()
+        if not result.get("success"):
+            raise Exception(
+                f"[{result.get('code', 'ERROR')}] {result.get('message', 'Request failed')}"
+            )
+        return result
+
+    def _get(self, endpoint: str, params: dict) -> dict:
+        """Send a GET request to the DARK-AUTH V2 API."""
+        url = f"{self.api_url}/api/v2/{endpoint.lstrip('/')}"
+        resp = requests.get(url, params=params, timeout=15)
+        resp.raise_for_status()
+        return resp.json()
 
     def init(self, binary_path: str = None) -> dict:
-        """Initialize session and check for software updates and anti-tamper hash."""
-        h = self.file_hash(binary_path) if binary_path else None
+        """Initialize session, check for updates, and verify binary integrity."""
         data = {
             "app_id": self.app_id,
             "secret": self.secret,
             "version": self.version,
-            "hash": h,
         }
+        if binary_path:
+            data["hash"] = self.file_hash(binary_path)
         res = self._post("/init", data)
         self.session_token = res.get("session_token")
         return res
 
     def license(self, key: str) -> dict:
-        """Authenticate directly with a license key (KeyAuth style)."""
+        """Authenticate directly with a license key."""
         if not self.session_token:
             self.init()
         data = {
@@ -86,10 +116,11 @@ class DarkAuth:
         }
         res = self._post("/license", data)
         self.license_info = res
+        self.user = res.get("user")
         return res
 
     def login(self, username: str, password: str) -> dict:
-        """Authenticate with existing user account."""
+        """Authenticate with an existing user account."""
         if not self.session_token:
             self.init()
         data = {
@@ -118,7 +149,7 @@ class DarkAuth:
         return res
 
     def check(self) -> bool:
-        """Check if active session is still valid."""
+        """Check if the active session is still valid."""
         if not self.session_token:
             return False
         try:
@@ -128,33 +159,46 @@ class DarkAuth:
             return False
 
     def get_var(self, name: str) -> str:
-        """Fetch remote cloud variable securely at runtime."""
+        """Fetch a remote cloud variable."""
         res = self._post("/var/get", {"session_token": self.session_token, "name": name})
         return res.get("value")
 
     def set_var(self, name: str, value: str) -> dict:
-        """Modify user-writeable cloud variable."""
-        return self._post("/var/set", {"session_token": self.session_token, "name": name, "value": value})
+        """Set a cloud variable."""
+        return self._post(
+            "/var/set",
+            {"session_token": self.session_token, "name": name, "value": value},
+        )
 
     def log(self, message: str, level: str = "INFO") -> dict:
-        """Stream telemetry or error logs to the developer dashboard."""
-        return self._post("/log", {"session_token": self.session_token, "message": message, "level": level})
+        """Send a telemetry or error log entry."""
+        return self._post(
+            "/log",
+            {"session_token": self.session_token, "message": message, "level": level},
+        )
 
     def reset_hwid(self, key: str) -> dict:
-        """Request HWID reset for a key."""
-        return self._post("/hwid/reset", {"session_token": self.session_token, "key": key})
+        """Request a HWID reset for a license key."""
+        return self._post(
+            "/hwid/reset", {"session_token": self.session_token, "key": key}
+        )
 
     def get_chat(self, channel: str = "general") -> list:
-        """Retrieve recent in-app chat or announcements."""
-        url = f"{self.api_url}/chat?session_token={self.session_token}&channel={channel}"
-        resp = requests.get(url, timeout=10)
-        return resp.json().get("messages", [])
+        """Retrieve chat messages from a channel."""
+        res = self._get(
+            "/chat",
+            {"session_token": self.session_token, "channel": channel},
+        )
+        return res.get("messages", [])
 
     def send_chat(self, sender: str, message: str, channel: str = "general") -> dict:
-        """Broadcast an in-app chat message."""
-        return self._post("/chat", {
-            "session_token": self.session_token,
-            "channel": channel,
-            "sender": sender,
-            "message": message,
-        })
+        """Send a chat message to a channel."""
+        return self._post(
+            "/chat",
+            {
+                "session_token": self.session_token,
+                "channel": channel,
+                "sender": sender,
+                "message": message,
+            },
+        )

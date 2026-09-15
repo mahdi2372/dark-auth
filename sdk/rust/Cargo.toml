@@ -1,12 +1,15 @@
 [package]
 name = "darkauth"
-version = "1.0.0"
+version = "2.0.0"
 edition = "2021"
 description = "Official DARK-AUTH Rust SDK"
+license = "MIT"
+repository = "https://github.com/darkauth/sdk"
 
 [dependencies]
-reqwest = { version = "0.11", features = ["json"] }
+reqwest = { version = "0.12", features = ["json"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 tokio = { version = "1", features = ["full"] }
 sha2 = "0.10"
+uuid = { version = "1", features = ["v4"] }
