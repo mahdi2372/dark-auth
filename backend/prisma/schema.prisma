@@ -41,9 +41,20 @@ model Application {
   appSecret   String   @map("app_secret")
   isActive    Boolean  @default(true) @map("is_active")
   hashCheck   Boolean  @default(false) @map("hash_check")
-  appHash     String?  @map("app_hash") // Optional expected binary sha256
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  appHash              String?  @map("app_hash") // Optional expected binary sha256
+  hwidLock             Boolean  @default(true) @map("hwid_lock")
+  forceHwid            Boolean  @default(true) @map("force_hwid")
+  blockVpns            Boolean  @default(false) @map("block_vpns")
+  blockLeakedPasswords Boolean  @default(false) @map("block_leaked_passwords")
+  tokenValidation      Boolean  @default(false) @map("token_validation")
+  logIp                Boolean  @default(true) @map("log_ip")
+  minHwidLength        Int      @default(20) @map("min_hwid_length")
+  hwidResetCooldown    Int      @default(168) @map("hwid_reset_cooldown")
+  minUsernameLength    Int      @default(1) @map("min_username_length")
+  sessionExpiryHours   Int      @default(6) @map("session_expiry_hours")
+  customDomain         String?  @map("custom_domain")
+  createdAt            DateTime @default(now()) @map("created_at")
+  updatedAt            DateTime @updatedAt @map("updated_at")
 
   user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   licenses       License[]
@@ -134,8 +145,10 @@ model AppUser {
   appId        String    @map("app_id")
   licenseId    String?   @map("license_id")
   username     String
+  email        String?
   passwordHash String    @map("password_hash")
   hwid         String?
+  hwidLocked   Boolean   @default(true) @map("hwid_locked")
   subLevel     Int       @default(1) @map("sub_level")
   expiresAt    DateTime? @map("expires_at")
   isBanned     Boolean   @default(false) @map("is_banned")

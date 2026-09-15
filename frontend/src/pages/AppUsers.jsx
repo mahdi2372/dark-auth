@@ -9,6 +9,18 @@ export default function AppUsers() {
   const [selectedApp, setSelectedApp] = useState('');
   const [loading, setLoading] = useState(true);
 
+  const [createForm, setCreateForm] = useState({
+    appId: '',
+    username: '',
+    password: '',
+    email: '',
+    subLevel: 1,
+    expiresAt: '',
+    hwidLocked: true,
+  });
+  const [isCreating, setIsCreating] = useState(false);
+  const [showCreateForm, setShowCreateForm] = useState(false);
+
   const loadData = async () => {
     try {
       setLoading(true);
@@ -54,6 +66,31 @@ export default function AppUsers() {
     }
   };
 
+  const handleCreate = async (e) => {
+    e.preventDefault();
+    if (!createForm.appId || !createForm.username || !createForm.password) {
+      toast.error('App, username, and password are required');
+      return;
+    }
+    try {
+      setIsCreating(true);
+      
+      const payload = { ...createForm };
+      // If expiresAt is empty, set it to null or undefined so it doesn't send empty string
+      if (!payload.expiresAt) delete payload.expiresAt;
+
+      await appUsersAPI.create(payload);
+      toast.success('App user created successfully');
+      setCreateForm({ ...createForm, username: '', password: '', email: '', expiresAt: '' });
+      setShowCreateForm(false);
+      loadData();
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to create user');
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
   return (
     <div className="page-container">
       <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -61,7 +98,104 @@ export default function AppUsers() {
           <h1 className="page-title">👥 App Users</h1>
           <p className="page-subtitle">Manage client end-users registered directly via SDK login/register APIs</p>
         </div>
+        {!showCreateForm && (
+          <button className="btn btn-primary" onClick={() => setShowCreateForm(true)}>
+            + Create App User
+          </button>
+        )}
       </div>
+
+      {showCreateForm && (
+        <div className="card" style={{ marginBottom: '20px', padding: '20px' }}>
+          <h3 style={{ marginBottom: '16px', fontSize: '16px', fontWeight: '600' }}>Create App User</h3>
+          <form onSubmit={handleCreate} style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxWidth: '500px' }}>
+            <div>
+              <label className="input-label">Application <span style={{color: 'red'}}>*</span></label>
+              <select
+                className="input"
+                value={createForm.appId}
+                onChange={(e) => setCreateForm({ ...createForm, appId: e.target.value })}
+                required
+              >
+                <option value="">Select an application...</option>
+                {apps.map((a) => (
+                  <option key={a.id} value={a.id}>{a.name}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="input-label">Username <span style={{color: 'red'}}>*</span></label>
+              <input
+                type="text"
+                className="input"
+                value={createForm.username}
+                onChange={(e) => setCreateForm({ ...createForm, username: e.target.value })}
+                required
+              />
+            </div>
+            <div>
+              <label className="input-label">Password</label>
+              <input
+                type="password"
+                className="input"
+                value={createForm.password}
+                onChange={(e) => setCreateForm({ ...createForm, password: e.target.value })}
+                required
+              />
+              <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Generate and store secure passwords with Proton Pass</span>
+            </div>
+            <div>
+              <label className="input-label">Email</label>
+              <input
+                type="email"
+                className="input"
+                value={createForm.email}
+                onChange={(e) => setCreateForm({ ...createForm, email: e.target.value })}
+              />
+            </div>
+            <div>
+              <label className="input-label">Subscription <span style={{color: 'red'}}>*</span></label>
+              <input
+                type="number"
+                className="input"
+                min="1"
+                value={createForm.subLevel}
+                onChange={(e) => setCreateForm({ ...createForm, subLevel: e.target.value })}
+                required
+              />
+            </div>
+            <div>
+              <label className="input-label">Expiration <span style={{color: 'red'}}>*</span></label>
+              <input
+                type="datetime-local"
+                className="input"
+                value={createForm.expiresAt}
+                onChange={(e) => setCreateForm({ ...createForm, expiresAt: e.target.value })}
+                required
+              />
+            </div>
+            <div>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={createForm.hwidLocked}
+                  onChange={(e) => setCreateForm({ ...createForm, hwidLocked: e.target.checked })}
+                />
+                HWID Affected
+              </label>
+            </div>
+            
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '16px', borderTop: '1px solid var(--border-color)', paddingTop: '16px' }}>
+              <button type="button" className="btn btn-secondary" onClick={() => setShowCreateForm(false)}>
+                Cancel
+              </button>
+              <button type="submit" className="btn btn-primary" disabled={isCreating}>
+                {isCreating ? 'Creating...' : 'Create User'}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
 
       <div className="card" style={{ marginBottom: '20px', padding: '16px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>

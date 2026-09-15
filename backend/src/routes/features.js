@@ -214,6 +214,44 @@ router.post('/webhooks/test/:id', async (req, res) => {
 // ============================================
 // APP USERS (End-Users inside client apps)
 // ============================================
+router.post('/app-users', async (req, res) => {
+  try {
+    const { appId, username, password, email, subLevel, expiresAt, hwidLocked } = req.body;
+    if (!appId || !username || !password) {
+      return res.status(400).json({ error: 'App ID, username, and password are required.' });
+    }
+
+    const app = await prisma.application.findFirst({ where: { id: appId, userId: req.user.id } });
+    if (!app) return res.status(404).json({ error: 'Application not found or access denied.' });
+
+    const existingUser = await prisma.appUser.findUnique({
+      where: { appId_username: { appId, username } },
+    });
+    if (existingUser) {
+      return res.status(400).json({ error: 'Username already exists for this application.' });
+    }
+
+    const { hashPassword } = require('../utils/password');
+    const passwordHash = await hashPassword(password);
+
+    const user = await prisma.appUser.create({
+      data: {
+        appId,
+        username,
+        email: email || null,
+        passwordHash,
+        subLevel: parseInt(subLevel || 1, 10),
+        expiresAt: expiresAt ? new Date(expiresAt) : null,
+        hwidLocked: hwidLocked !== undefined ? !!hwidLocked : true,
+      },
+    });
+
+    res.json({ success: true, user });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 router.get('/app-users', async (req, res) => {
   try {
     const { appId } = req.query;

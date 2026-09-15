@@ -80,7 +80,7 @@ async function getAppStats(userId, appId) {
  * Update an application.
  * @param {string} userId
  * @param {string} id
- * @param {{ name?: string, description?: string }} data
+ * @param {object} data
  * @returns {Promise<object>}
  */
 async function updateApp(userId, id, data) {
@@ -90,8 +90,22 @@ async function updateApp(userId, id, data) {
   return prisma.application.update({
     where: { id },
     data: {
-      ...(data.name && { name: data.name }),
+      ...(data.name !== undefined && { name: data.name }),
       ...(data.description !== undefined && { description: data.description }),
+      ...(data.isActive !== undefined && { isActive: data.isActive }),
+      ...(data.hashCheck !== undefined && { hashCheck: data.hashCheck }),
+      ...(data.appHash !== undefined && { appHash: data.appHash }),
+      ...(data.hwidLock !== undefined && { hwidLock: data.hwidLock }),
+      ...(data.forceHwid !== undefined && { forceHwid: data.forceHwid }),
+      ...(data.blockVpns !== undefined && { blockVpns: data.blockVpns }),
+      ...(data.blockLeakedPasswords !== undefined && { blockLeakedPasswords: data.blockLeakedPasswords }),
+      ...(data.tokenValidation !== undefined && { tokenValidation: data.tokenValidation }),
+      ...(data.logIp !== undefined && { logIp: data.logIp }),
+      ...(data.minHwidLength !== undefined && { minHwidLength: data.minHwidLength }),
+      ...(data.hwidResetCooldown !== undefined && { hwidResetCooldown: data.hwidResetCooldown }),
+      ...(data.minUsernameLength !== undefined && { minUsernameLength: data.minUsernameLength }),
+      ...(data.sessionExpiryHours !== undefined && { sessionExpiryHours: data.sessionExpiryHours }),
+      ...(data.customDomain !== undefined && { customDomain: data.customDomain }),
     },
   });
 }

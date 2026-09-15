@@ -129,6 +129,7 @@ export const webhooksAPI = {
 // ===== APP USERS =====
 export const appUsersAPI = {
   list: (appId) => api.get('/app-users', { params: { appId } }),
+  create: (data) => api.post('/app-users', data),
   ban: (id, isBanned, banReason) => api.put(`/app-users/${id}/ban`, { isBanned, banReason }),
   delete: (id) => api.delete(`/app-users/${id}`),
 };

@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { appsAPI } from '../api/client';
 import Modal from '../components/Modal';
-import { Plus, Trash2, Edit, RefreshCw, Copy, AppWindow, Eye, EyeOff } from 'lucide-react';
+import AppSettingsModal from '../components/AppSettingsModal';
+import { Plus, Trash2, Edit, RefreshCw, Copy, AppWindow, Eye, EyeOff, Settings } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function Apps() {
@@ -9,6 +10,7 @@ export default function Apps() {
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
   const [showEdit, setShowEdit] = useState(null);
+  const [showSettings, setShowSettings] = useState(null);
   const [form, setForm] = useState({ name: '', description: '' });
   const [visibleSecrets, setVisibleSecrets] = useState({});
 
@@ -141,6 +143,9 @@ export default function Apps() {
                 </div>
 
                 <div style={{ display: 'flex', gap: 6 }}>
+                  <button className="btn btn-secondary btn-sm" onClick={() => setShowSettings(app)} title="Advanced Settings">
+                    <Settings size={14} />
+                  </button>
                   <button className="btn btn-secondary btn-sm" onClick={() => { setForm({ name: app.name, description: app.description || '' }); setShowEdit(app); }}>
                     <Edit size={14} />
                   </button>
@@ -200,6 +205,19 @@ export default function Apps() {
           <textarea className="form-textarea" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
         </div>
       </Modal>
+
+      {/* App Settings Modal */}
+      {showSettings && (
+        <AppSettingsModal
+          isOpen={!!showSettings}
+          onClose={() => setShowSettings(null)}
+          app={showSettings}
+          onSaved={() => {
+            setShowSettings(null);
+            fetchApps();
+          }}
+        />
+      )}
     </>
   );
 }
