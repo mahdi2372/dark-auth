@@ -273,3 +273,42 @@ model AuditLog {
 
   @@map("audit_logs")
 }
+
+// ============================================
+// CLIENT USER — End-User Accounts (Portal)
+// ============================================
+model ClientUser {
+  id           String   @id @default(uuid())
+  username     String   @unique
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  hwid         String?
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  licenses ClientLicense[]
+
+  @@map("client_users")
+}
+
+// ============================================
+// CLIENT LICENSE — Licenses Redeemed by Client Users
+// ============================================
+model ClientLicense {
+  id            String   @id @default(uuid())
+  clientUserId  String   @map("client_user_id")
+  licenseKey    String   @map("license_key")
+  appId         String?  @map("app_id")
+  appName       String?  @map("app_name")
+  licenseType   String   @map("license_type")
+  status        String   @default("ACTIVE")
+  hwid          String?
+  expiresAt     DateTime? @map("expires_at")
+  activatedAt   DateTime @default(now()) @map("activated_at")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  clientUser ClientUser @relation(fields: [clientUserId], references: [id], onDelete: Cascade)
+
+  @@map("client_licenses")
+}

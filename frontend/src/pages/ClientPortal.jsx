@@ -13,16 +13,16 @@ export default function ClientPortal() {
 
   useEffect(() => {
     // Generate or retrieve persistent browser HWID
-    let storedHwid = localStorage.getItem('redkey_portal_hwid');
+    let storedHwid = localStorage.getItem('darkauth_portal_hwid');
     if (!storedHwid) {
       storedHwid = 'CLIENT-' + Array.from(crypto.getRandomValues(new Uint8Array(16)))
         .map(b => b.toString(16).padStart(2, '0')).join('').toUpperCase();
-      localStorage.setItem('redkey_portal_hwid', storedHwid);
+      localStorage.setItem('darkauth_portal_hwid', storedHwid);
     }
     setHwid(storedHwid);
 
     // Check if previously redeemed
-    const savedActivation = localStorage.getItem('redkey_saved_activation');
+    const savedActivation = localStorage.getItem('darkauth_saved_activation');
     if (savedActivation) {
       try {
         setActivationData(JSON.parse(savedActivation));
@@ -70,7 +70,7 @@ export default function ClientPortal() {
         const directData = await directRes.json();
         if (!directRes.ok) throw new Error(directData.error || 'Activation failed');
         setActivationData(directData);
-        localStorage.setItem('redkey_saved_activation', JSON.stringify(directData));
+        localStorage.setItem('darkauth_saved_activation', JSON.stringify(directData));
         toast.success('License activated successfully!');
         return;
       }
@@ -89,7 +89,7 @@ export default function ClientPortal() {
       if (!licData.success) throw new Error(licData.message || 'Invalid license key');
 
       setActivationData(licData);
-      localStorage.setItem('redkey_saved_activation', JSON.stringify(licData));
+      localStorage.setItem('darkauth_saved_activation', JSON.stringify(licData));
       toast.success('License validated! Access unlocked.');
     } catch (err) {
       toast.error(err.message || 'Failed to activate license');
@@ -99,7 +99,7 @@ export default function ClientPortal() {
   };
 
   const handleClearSession = () => {
-    localStorage.removeItem('redkey_saved_activation');
+    localStorage.removeItem('darkauth_saved_activation');
     setActivationData(null);
     setLicenseKey('');
     toast.success('Signed out of client session.');
@@ -192,7 +192,7 @@ export default function ClientPortal() {
             marginBottom: '16px',
           }}>
             <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#ef4444', boxShadow: '0 0 10px #ef4444' }} />
-            RedKey Client Activation Engine
+            DARK-AUTH Client Activation Engine
           </div>
           <h1 style={{
             fontSize: '42px',

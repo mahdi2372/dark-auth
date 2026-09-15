@@ -1,7 +1,7 @@
 """
 DARK-AUTH Official Python SDK
 =============================
-KeyAuth / Authly / RedKey compatible client library.
+KeyAuth / Authly compatible client library.
 Supports: Init, License Auth, User Login/Register, Cloud Variables, Chat, Logging, HWID lock.
 """
 
@@ -76,7 +76,7 @@ class DarkAuth:
         return res
 
     def license(self, key: str) -> dict:
-        """Authenticate directly with a license key (RedKey / KeyAuth style)."""
+        """Authenticate directly with a license key (KeyAuth style)."""
         if not self.session_token:
             self.init()
         data = {

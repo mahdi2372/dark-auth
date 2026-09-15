@@ -67,7 +67,7 @@ class DarkAuth {
   }
 
   /**
-   * Direct License Authentication (KeyAuth / RedKey style)
+   * Direct License Authentication (KeyAuth style)
    */
   async license(key) {
     if (!this.sessionToken) await this.init();

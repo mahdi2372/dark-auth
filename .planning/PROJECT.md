@@ -1,7 +1,7 @@
 ﻿# DARK-AUTH — Self-Hosted Authentication, Licensing & Client Activation Platform
 
 ## Vision
-A **complete, free, self-hosted** authentication, licensing, and client activation platform inspired by KeyAuth and RedKey USB activation flows. Built entirely with open-source technologies, deployable on free hosting tiers.
+A **complete, free, self-hosted** authentication, licensing, and client activation platform inspired by KeyAuth. Built entirely with open-source technologies, deployable on free hosting tiers.
 
 ## Problem Statement
 Commercial licensing/authentication platforms (KeyAuth, Cryptlex, Keygen) charge fees and create vendor lock-in. Developers need a free, self-hostable alternative with the same feature depth: user accounts, app management, license generation/verification, hardware binding, client activation, and auto-update infrastructure.

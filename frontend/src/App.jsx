@@ -31,12 +31,6 @@ function PublicRoute({ children }) {
 }
 
 function AppRoutes() {
-  // Support RedKey query parameter `/?client`
-  const searchParams = new URLSearchParams(window.location.search);
-  if (searchParams.has('client')) {
-    return <ClientPortal />;
-  }
-
   return (
     <Routes>
       <Route path="/" element={<Home />} />

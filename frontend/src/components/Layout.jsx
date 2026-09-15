@@ -20,7 +20,7 @@ export default function Layout({ children }) {
   const navItems = [
     { section: 'Overview', items: [
       { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-      { to: '/client', icon: ExternalLink, label: 'Client Portal (RedKey)' },
+      { to: '/client', icon: ExternalLink, label: 'Client Portal' },
     ]},
     { section: 'Management', items: [
       { to: '/apps', icon: AppWindow, label: 'Applications' },

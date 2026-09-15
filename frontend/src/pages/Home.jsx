@@ -29,21 +29,21 @@ export default function Home() {
   const [selectedSdk, setSelectedSdk] = useState('python');
 
   useEffect(() => {
-    let storedHwid = localStorage.getItem('redkey_portal_hwid');
+    let storedHwid = localStorage.getItem('darkauth_portal_hwid');
     if (!storedHwid) {
       storedHwid = 'CLIENT-' + Array.from(crypto.getRandomValues(new Uint8Array(16)))
         .map(b => b.toString(16).padStart(2, '0')).join('').toUpperCase();
-      localStorage.setItem('redkey_portal_hwid', storedHwid);
+      localStorage.setItem('darkauth_portal_hwid', storedHwid);
     }
     setHwid(storedHwid);
 
-    const saved = localStorage.getItem('redkey_saved_activation');
+    const saved = localStorage.getItem('darkauth_saved_activation');
     if (saved) {
       try { setActivationData(JSON.parse(saved)); } catch {}
     }
   }, []);
 
-  // 1. Direct Key Redemption (RedKey style)
+  // 1. Direct Key Redemption
   const handleActivateKey = async (e) => {
     e.preventDefault();
     if (!licenseKey.trim()) return toast.error('Please enter a license key.');
@@ -67,7 +67,7 @@ export default function Home() {
       if (!licData.success) throw new Error(licData.message || licData.error || 'Invalid license key');
 
       setActivationData(licData);
-      localStorage.setItem('redkey_saved_activation', JSON.stringify(licData));
+      localStorage.setItem('darkauth_saved_activation', JSON.stringify(licData));
       toast.success('License validated! Access unlocked.');
     } catch (err) {
       toast.error(err.message || 'Activation failed');
@@ -110,7 +110,7 @@ export default function Home() {
         level: data.user?.level || 1,
         expires_at: data.user?.expires_at,
       });
-      localStorage.setItem('redkey_saved_activation', JSON.stringify(data));
+      localStorage.setItem('darkauth_saved_activation', JSON.stringify(data));
       toast.success('Account registered and license bound successfully!');
     } catch (err) {
       toast.error(err.message || 'Client registration failed');
@@ -148,7 +148,7 @@ export default function Home() {
         level: data.user?.level || 1,
         expires_at: data.user?.expires_at,
       });
-      localStorage.setItem('redkey_saved_activation', JSON.stringify(data));
+      localStorage.setItem('darkauth_saved_activation', JSON.stringify(data));
       toast.success('Welcome back! Client session verified.');
     } catch (err) {
       toast.error(err.message || 'Client login failed');
@@ -403,7 +403,7 @@ local res = auth:license("XXXXX-XXXXX-XXXXX-XXXXX")`,
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
           }}>
-            KeyAuth • AuthlyX • RedKey Combined
+            Unified Authentication & Licensing Platform
           </h1>
           <p style={{ color: '#9ca3af', fontSize: '16px', maxWidth: '640px', margin: '0 auto 20px', lineHeight: 1.6 }}>
             Unified client key redemption, instant account registration, hardware ID locking, and developer portal.
@@ -498,7 +498,7 @@ local res = auth:license("XXXXX-XXXXX-XXXXX-XXXXX")`,
                   ))}
                 </div>
 
-                {/* Submode 1: Redeem Key (RedKey style) */}
+                {/* Submode 1: Redeem Key */}
                 {authMode === 'redeem' && (
                   <div>
                     <div style={{ marginBottom: '6px' }}>
@@ -964,7 +964,7 @@ local res = auth:license("XXXXX-XXXXX-XXXXX-XXXXX")`,
                   <button
                     type="button"
                     onClick={() => {
-                      localStorage.removeItem('redkey_saved_activation');
+                      localStorage.removeItem('darkauth_saved_activation');
                       setActivationData(null);
                       setLicenseKey('');
                       setClientUsername('');
@@ -1139,7 +1139,7 @@ local res = auth:license("XXXXX-XXXXX-XXXXX-XXXXX")`,
                 <li>✓ Anti-tamper binary hash checks</li>
                 <li>✓ Discord & Slack Webhooks</li>
                 <li>✓ Cloud Variables storage</li>
-                <li>✓ Dedicated RedKey client portal</li>
+                <li>✓ Dedicated client portal</li>
               </ul>
               <button
                 type="button"
