@@ -1,515 +1,395 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import React, { useState, useEffect, useRef } from 'react';
 import {
-  Shield, Cpu, Lock, RefreshCw, Zap, Bell, Database, Users,
-  UserPlus, Terminal, Code2, Check, Copy,
+  Shield, Lock, RefreshCw, Bell, Database, Users,
+  Copy, ChevronRight, ArrowRight, Check,
+  Key, Fingerprint, Server,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
-export default function Home() {
-  const navigate = useNavigate();
-  const { register: authRegister } = useAuth();
-
-  const [activeTab, setActiveTab] = useState('features'); // 'features' | 'sdks' | 'pricing'
-  const [devUsername, setDevUsername] = useState('');
-  const [devEmail, setDevEmail] = useState('');
-  const [devPassword, setDevPassword] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [selectedSdk, setSelectedSdk] = useState('python');
-
-  const handleDevRegister = async (e) => {
-    e.preventDefault();
-    if (!devUsername.trim() || !devEmail.trim() || !devPassword) {
-      return toast.error('All fields are required.');
-    }
-    if (devPassword.length < 4) {
-      return toast.error('Password must be at least 4 characters.');
-    }
-
-    setLoading(true);
-    try {
-      await authRegister({
-        username: devUsername.trim(),
-        email: devEmail.trim(),
-        password: devPassword,
+function ParticleField() {
+  const canvasRef = useRef(null);
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    let animId;
+    const resize = () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; };
+    resize();
+    window.addEventListener('resize', resize);
+    const particles = Array.from({ length: 60 }, () => ({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      vx: (Math.random() - 0.5) * 0.4,
+      vy: (Math.random() - 0.5) * 0.4,
+      r: Math.random() * 2 + 0.5,
+    }));
+    const draw = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      particles.forEach(p => {
+        p.x += p.vx; p.y += p.vy;
+        if (p.x < 0 || p.x > canvas.width) p.vx *= -1;
+        if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(239, 68, 68, 0.15)';
+        ctx.fill();
       });
-      toast.success('Account created! Redirecting to Dashboard...');
-      navigate('/dashboard');
-    } catch (err) {
-      toast.error(err.response?.data?.error || err.response?.data?.message || err.message || 'Registration failed');
-    } finally {
-      setLoading(false);
-    }
-  };
+      for (let i = 0; i < particles.length; i++) {
+        for (let j = i + 1; j < particles.length; j++) {
+          const dx = particles[i].x - particles[j].x;
+          const dy = particles[i].y - particles[j].y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < 150) {
+            ctx.beginPath();
+            ctx.moveTo(particles[i].x, particles[i].y);
+            ctx.lineTo(particles[j].x, particles[j].y);
+            ctx.strokeStyle = `rgba(239, 68, 68, ${0.06 * (1 - dist / 150)})`;
+            ctx.stroke();
+          }
+        }
+      }
+      animId = requestAnimationFrame(draw);
+    };
+    draw();
+    return () => { cancelAnimationFrame(animId); window.removeEventListener('resize', resize); };
+  }, []);
+  return <canvas ref={canvasRef} style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 0 }} />;
+}
+
+function AnimatedCounter({ target, duration = 2000 }) {
+  const [count, setCount] = useState(0);
+  const ref = useRef(null);
+  const started = useRef(false);
+  useEffect(() => {
+    const obs = new IntersectionObserver(([e]) => {
+      if (e.isIntersecting && !started.current) {
+        started.current = true;
+        const start = Date.now();
+        const tick = () => {
+          const elapsed = Date.now() - start;
+          const progress = Math.min(elapsed / duration, 1);
+          setCount(Math.floor(progress * target));
+          if (progress < 1) requestAnimationFrame(tick);
+        };
+        tick();
+      }
+    }, { threshold: 0.5 });
+    if (ref.current) obs.observe(ref.current);
+    return () => obs.disconnect();
+  }, [target, duration]);
+  return <span ref={ref}>{count}</span>;
+}
+
+export default function Home() {
+  const [selectedSdk, setSelectedSdk] = useState('python');
+  const [visibleSection, setVisibleSection] = useState({});
+
+  useEffect(() => {
+    const obs = new IntersectionObserver((entries) => {
+      entries.forEach(e => {
+        if (e.isIntersecting) {
+          setVisibleSection(prev => ({ ...prev, [e.target.id]: true }));
+        }
+      });
+    }, { threshold: 0.15 });
+    document.querySelectorAll('[data-animate]').forEach(el => obs.observe(el));
+    return () => obs.disconnect();
+  }, []);
 
   const sdkSnippets = {
-    python: `# Python SDK
-from darkauth import DarkAuth
+    python: `from darkauth import DarkAuth
 
 auth = DarkAuth(app_id="YOUR_APP_ID", secret="YOUR_SECRET")
 auth.init()
 res = auth.license("XXXXX-XXXXX-XXXXX-XXXXX")
-print("Status:", res['status'])
-motd = auth.get_var("MOTD")`,
-
-    csharp: `// C# (.NET 6+)
-using DarkAuthSdk;
+print("Status:", res['status'])`,
+    csharp: `using DarkAuthSdk;
 
 var auth = new DarkAuth("YOUR_APP_ID", "YOUR_SECRET");
 await auth.InitAsync();
 var res = await auth.LicenseAsync("XXXXX-XXXXX-XXXXX-XXXXX");
-Console.WriteLine("License Level: " + res.GetProperty("level"));`,
-
-    cpp: `// C++17 (Windows WinINet / Header-only)
-#include "DarkAuth.hpp"
+Console.WriteLine("Level: " + res.GetProperty("level"));`,
+    cpp: `#include "DarkAuth.hpp"
 
 DarkAuthSdk::DarkAuth auth("YOUR_APP_ID", "YOUR_SECRET");
 auth.init();
 auto res = auth.license("XXXXX-XXXXX-XXXXX-XXXXX");
-if (res.success) {
-    std::cout << "Unlocked!" << std::endl;
-}`,
+if (res.success) std::cout << "Unlocked!";`,
+    rust: `use darkauth::DarkAuth;
 
-    rust: `// Rust SDK
-use darkauth::DarkAuth;
+let mut auth = DarkAuth::new("APP_ID", "SECRET", "1.0.0", "API_URL");
+auth.init(None).await?;
+let res = auth.license("XXXXX-XXXXX-XXXXX-XXXXX").await?;`,
+    javascript: `import DarkAuth from './darkauth.js';
 
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let mut auth = DarkAuth::new("YOUR_APP_ID", "YOUR_SECRET", "1.0.0", "YOUR_API_URL");
-    auth.init(None).await?;
-    let res = auth.license("XXXXX-XXXXX-XXXXX-XXXXX").await?;
-    Ok(())
-}`,
-
-    javascript: `// JavaScript / TypeScript (Node & Browser)
-import DarkAuth from './darkauth.js';
-
-const auth = new DarkAuth({ appId: 'YOUR_APP_ID', secret: 'YOUR_SECRET' });
+const auth = new DarkAuth({ appId: 'APP_ID', secret: 'SECRET' });
 await auth.init();
 const res = await auth.license('XXXXX-XXXXX-XXXXX-XXXXX');
 console.log('Authenticated:', res.success);`,
-
-    go: `// Go SDK
-package main
-
-import "github.com/darkauth/sdk/go"
-
-func main() {
-    client := darkauth.New("YOUR_APP_ID", "YOUR_SECRET", "1.0.0", "")
-    client.Init("")
-    res, _ := client.License("XXXXX-XXXXX-XXXXX-XXXXX")
-}`,
-
-    unity: `// Unity C# (MonoBehaviour)
-using DarkAuthUnity;
-
-DarkAuthUnity.Instance.AuthenticateLicense("XXXXX-XXXXX-XXXXX-XXXXX", 
-    onSuccess: (res) => Debug.Log("Game Unlocked! Tier: " + res.level),
-    onError: (err) => Debug.LogError(err)
+    go: `client := darkauth.New("APP_ID", "SECRET", "1.0.0", "")
+client.Init("")
+res, _ := client.License("XXXXX-XXXXX-XXXXX-XXXXX")`,
+    unity: `DarkAuthUnity.Instance.AuthenticateLicense(
+  "XXXXX-XXXXX-XXXXX-XXXXX",
+  onSuccess: (res) => Debug.Log("Unlocked! Tier: " + res.level),
+  onError: (err) => Debug.LogError(err)
 );`,
-
-    lua: `-- Lua SDK (FiveM / Roblox / Standalone)
-local DarkAuth = require("darkauth")
-local auth = DarkAuth.new("YOUR_APP_ID", "YOUR_SECRET")
+    lua: `local DarkAuth = require("darkauth")
+local auth = DarkAuth.new("APP_ID", "SECRET")
 auth:init()
 local res = auth:license("XXXXX-XXXXX-XXXXX-XXXXX")`,
   };
 
-  return (
-    <div style={{
-      minHeight: '100vh',
-      background: 'radial-gradient(circle at 50% 10%, #1e1114 0%, #0c0a0c 50%, #050505 100%)',
-      color: '#ffffff',
-      fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-      display: 'flex',
-      flexDirection: 'column',
-    }}>
-      {/* Top Navbar */}
-      <header style={{
-        position: 'sticky',
-        top: 0,
-        zIndex: 100,
-        padding: '16px 32px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        borderBottom: '1px solid rgba(239, 68, 68, 0.2)',
-        backdropFilter: 'blur(20px)',
-        background: 'rgba(12, 10, 12, 0.85)',
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{
-            width: '36px',
-            height: '36px',
-            borderRadius: '8px',
-            background: 'linear-gradient(135deg, #ef4444, #991b1b)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            boxShadow: '0 0 20px rgba(239, 68, 68, 0.5)',
-          }}>
-            <Shield size={20} color="#fff" />
-          </div>
-          <div>
-            <span style={{ fontWeight: 800, fontSize: '17px', letterSpacing: '1px' }}>
-              DARK<span style={{ color: '#ef4444' }}>AUTH</span>
-            </span>
-          </div>
-        </div>
+  const features = [
+    { icon: Key, title: 'License Management', desc: 'Generate, validate, and manage license keys with time-limited, lifetime, and trial types.' },
+    { icon: Fingerprint, title: 'HWID Locking', desc: 'Bind licenses to hardware fingerprints. Block piracy with machine-level device binding.' },
+    { icon: Database, title: 'Cloud Variables', desc: 'Store and sync runtime config, feature flags, and secrets from the cloud.' },
+    { icon: Lock, title: 'Anti-Tamper', desc: 'Binary SHA-256 checksum verification blocks cracked and modified executables.' },
+    { icon: Bell, title: 'Webhook Alerts', desc: 'Real-time Discord & Slack notifications for activations, bans, and registrations.' },
+    { icon: RefreshCw, title: 'Auto-Updater', desc: 'Seamless version distribution with forced updates and grace period notices.' },
+    { icon: Users, title: 'User Management', desc: 'Full username + password auth inside your apps, tied to license tiers.' },
+    { icon: Server, title: 'REST API', desc: 'Developer-friendly API for licensing, validation, automation, and analytics.' },
+  ];
 
-        <nav style={{ display: 'flex', gap: '4px' }}>
-          {[
-            { id: 'features', label: 'Features' },
-            { id: 'sdks', label: 'SDKs' },
-            { id: 'pricing', label: 'Pricing' },
-          ].map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              style={{
-                padding: '8px 16px',
-                borderRadius: '8px',
-                border: 'none',
-                background: activeTab === tab.id ? 'rgba(239, 68, 68, 0.15)' : 'transparent',
-                color: activeTab === tab.id ? '#ef4444' : '#9ca3af',
-                fontWeight: 600,
-                fontSize: '13px',
-                cursor: 'pointer',
-              }}
-            >
-              {tab.label}
-            </button>
+  const stats = [
+    { value: 14, suffix: '+', label: 'Language SDKs' },
+    { value: 100, suffix: '%', label: 'Open Source' },
+    { value: 0, suffix: '', label: 'Cost (Free)' },
+    { value: 24, suffix: '/7', label: 'Self-Hosted' },
+  ];
+
+  const fadeUp = (id) => ({
+    id,
+    'data-animate': 'true',
+    style: {
+      opacity: visibleSection[id] ? 1 : 0,
+      transform: visibleSection[id] ? 'translateY(0)' : 'translateY(40px)',
+      transition: 'all 0.7s cubic-bezier(0.16, 1, 0.3, 1)',
+    },
+  });
+
+  return (
+    <div style={{ minHeight: '100vh', background: '#050505', color: '#fff', fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif', overflow: 'hidden' }}>
+      <ParticleField />
+
+      {/* Navbar */}
+      <header style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 200, padding: '16px 40px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(5, 5, 5, 0.8)', backdropFilter: 'blur(20px)', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div style={{ width: '34px', height: '34px', borderRadius: '8px', background: 'linear-gradient(135deg, #ef4444, #991b1b)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 20px rgba(239,68,68,0.4)' }}>
+            <Shield size={18} color="#fff" />
+          </div>
+          <span style={{ fontWeight: 800, fontSize: '17px', letterSpacing: '1px' }}>DARK<span style={{ color: '#ef4444' }}>AUTH</span></span>
+        </div>
+        <nav style={{ display: 'flex', gap: '6px', position: 'relative', zIndex: 1 }}>
+          {['features', 'sdks', 'pricing'].map(id => (
+            <a key={id} href={`#${id}`} style={{ padding: '8px 18px', borderRadius: '8px', color: '#9ca3af', textDecoration: 'none', fontSize: '13px', fontWeight: 600, transition: 'all 0.2s' }}
+              onMouseEnter={e => { e.target.style.color = '#fff'; e.target.style.background = 'rgba(255,255,255,0.06)'; }}
+              onMouseLeave={e => { e.target.style.color = '#9ca3af'; e.target.style.background = 'transparent'; }}>
+              {id.charAt(0).toUpperCase() + id.slice(1)}
+            </a>
           ))}
         </nav>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <a href="/login" style={{
-            fontSize: '13px',
-            color: '#9ca3af',
-            textDecoration: 'none',
-            padding: '8px 16px',
-            borderRadius: '8px',
-            border: '1px solid rgba(255,255,255,0.1)',
-          }}>
-            Sign In
-          </a>
-          <a href="/register" style={{
-            fontSize: '13px',
-            color: '#fff',
-            textDecoration: 'none',
-            padding: '8px 16px',
-            borderRadius: '8px',
-            background: '#ef4444',
-            fontWeight: 600,
-          }}>
-            Get Started
-          </a>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <a href="/login" style={{ padding: '8px 20px', borderRadius: '8px', color: '#9ca3af', textDecoration: 'none', fontSize: '13px', fontWeight: 600, border: '1px solid rgba(255,255,255,0.08)', transition: 'all 0.2s' }}>Sign In</a>
+          <a href="/register" style={{ padding: '8px 20px', borderRadius: '8px', color: '#fff', textDecoration: 'none', fontSize: '13px', fontWeight: 700, background: 'linear-gradient(135deg, #ef4444, #b91c1c)', boxShadow: '0 4px 15px rgba(239,68,68,0.3)' }}>Get Started</a>
         </div>
       </header>
 
-      <main style={{ flex: 1, maxWidth: '1100px', width: '100%', margin: '0 auto', padding: '48px 24px' }}>
-        {/* Hero Section */}
-        <div style={{ textAlign: 'center', marginBottom: '48px' }}>
-          <div style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '8px',
-            background: 'rgba(239, 68, 68, 0.1)',
-            border: '1px solid rgba(239, 68, 68, 0.3)',
-            borderRadius: '20px',
-            padding: '6px 16px',
-            color: '#f87171',
-            fontSize: '13px',
-            fontWeight: 600,
-            marginBottom: '16px',
-          }}>
-            <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#ef4444', boxShadow: '0 0 10px #ef4444' }} />
-            Open Source Licensing Platform
-          </div>
+      {/* Hero */}
+      <section style={{ position: 'relative', zIndex: 1, minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '120px 24px 60px', textAlign: 'center' }}>
+        <div style={{
+          position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
+          width: '600px', height: '600px', borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(239,68,68,0.08) 0%, transparent 70%)',
+          filter: 'blur(60px)', pointerEvents: 'none',
+        }} />
 
-          <h1 style={{
-            fontSize: '46px',
-            fontWeight: 900,
-            letterSpacing: '-1.5px',
-            marginBottom: '12px',
-            background: 'linear-gradient(135deg, #ffffff 40%, #fca5a5 100%)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-          }}>
-            Protect Your Software
-          </h1>
-          <p style={{ color: '#9ca3af', fontSize: '16px', maxWidth: '560px', margin: '0 auto 32px', lineHeight: 1.6 }}>
-            License generation, hardware ID locking, auto-updates, and cloud variables. Built for developers, by developers.
-          </p>
-
-          {/* Developer Registration Form */}
-          <div style={{
-            maxWidth: '440px',
-            margin: '0 auto',
-            background: 'rgba(24, 18, 22, 0.85)',
-            border: '1px solid rgba(239, 68, 68, 0.3)',
-            borderRadius: '20px',
-            padding: '32px',
-            backdropFilter: 'blur(20px)',
-            boxShadow: '0 20px 50px rgba(0, 0, 0, 0.6), 0 0 30px rgba(239, 68, 68, 0.15)',
-          }}>
-            <div style={{ textAlign: 'left', marginBottom: '20px' }}>
-              <h2 style={{ fontSize: '20px', fontWeight: 800, margin: '0 0 4px 0', color: '#fca5a5' }}>
-                Create Developer Account
-              </h2>
-              <p style={{ color: '#9ca3af', fontSize: '13px', margin: 0 }}>
-                Start managing licenses in minutes. Free & self-hosted.
-              </p>
-            </div>
-
-            <form onSubmit={handleDevRegister} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#e5e7eb', marginBottom: '4px' }}>
-                  USERNAME
-                </label>
-                <input
-                  type="text"
-                  placeholder="your_username"
-                  value={devUsername}
-                  onChange={(e) => setDevUsername(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '12px 14px',
-                    background: 'rgba(10, 8, 10, 0.8)',
-                    border: '1px solid rgba(255,255,255,0.12)',
-                    borderRadius: '10px',
-                    color: '#ffffff',
-                    fontSize: '14px',
-                    boxSizing: 'border-box',
-                    outline: 'none',
-                  }}
-                  required
-                />
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#e5e7eb', marginBottom: '4px' }}>
-                  EMAIL
-                </label>
-                <input
-                  type="email"
-                  placeholder="you@example.com"
-                  value={devEmail}
-                  onChange={(e) => setDevEmail(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '12px 14px',
-                    background: 'rgba(10, 8, 10, 0.8)',
-                    border: '1px solid rgba(255,255,255,0.12)',
-                    borderRadius: '10px',
-                    color: '#ffffff',
-                    fontSize: '14px',
-                    boxSizing: 'border-box',
-                    outline: 'none',
-                  }}
-                  required
-                />
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#e5e7eb', marginBottom: '4px' }}>
-                  PASSWORD
-                </label>
-                <input
-                  type="password"
-                  placeholder="Min 4 characters"
-                  value={devPassword}
-                  onChange={(e) => setDevPassword(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '12px 14px',
-                    background: 'rgba(10, 8, 10, 0.8)',
-                    border: '1px solid rgba(255,255,255,0.12)',
-                    borderRadius: '10px',
-                    color: '#ffffff',
-                    fontSize: '14px',
-                    boxSizing: 'border-box',
-                    outline: 'none',
-                  }}
-                  required
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={loading}
-                style={{
-                  marginTop: '4px',
-                  padding: '14px',
-                  background: 'linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)',
-                  color: '#ffffff',
-                  border: 'none',
-                  borderRadius: '10px',
-                  fontSize: '15px',
-                  fontWeight: 700,
-                  cursor: loading ? 'not-allowed' : 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '8px',
-                  boxShadow: '0 8px 25px rgba(239, 68, 68, 0.4)',
-                }}
-              >
-                {loading ? <RefreshCw size={16} className="animate-spin" /> : <UserPlus size={16} />}
-                {loading ? 'Creating Account...' : 'Create Account & Go to Dashboard'}
-              </button>
-            </form>
-
-            <p style={{ textAlign: 'center', marginTop: '16px', fontSize: '12px', color: '#6b7280' }}>
-              Already have an account? <a href="/login" style={{ color: '#ef4444', textDecoration: 'none' }}>Sign in</a>
-            </p>
-          </div>
+        <div style={{
+          display: 'inline-flex', alignItems: 'center', gap: '8px',
+          background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)',
+          borderRadius: '40px', padding: '6px 18px', marginBottom: '24px',
+          animation: 'fadeInDown 0.8s ease',
+        }}>
+          <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#ef4444', boxShadow: '0 0 8px #ef4444', animation: 'pulse 2s infinite' }} />
+          <span style={{ fontSize: '13px', fontWeight: 600, color: '#f87171' }}>100% Free & Open Source</span>
         </div>
 
-        {/* TAB: FEATURES & SECURITY */}
-        {activeTab === 'features' && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
-            {[
-              { icon: Cpu, title: 'HWID Locking', desc: 'Machine-level fingerprinting binds licenses to user devices, with admin cooldowns and self-service reset requests.' },
-              { icon: Database, title: 'Cloud Variables', desc: 'Host runtime secrets, server endpoints, and license-restricted strings remotely in the cloud without hardcoding.' },
-              { icon: Lock, title: 'Anti-Tamper Checks', desc: 'Verifies binary SHA-256 checksums on initialization to block cracked, patched, or modified executables.' },
-              { icon: Bell, title: 'Webhook Alerts', desc: 'Instant notifications to Discord with rich embeds whenever a license is activated, registered, or banned.' },
-              { icon: RefreshCw, title: 'Auto-Updater Engine', desc: 'Deliver binary updates seamlessly with support for forced updates and grace-period reminder notices.' },
-              { icon: Users, title: 'End-User Accounts', desc: 'Full username + password auth inside your client applications, linked to product license tiers.' },
-              { icon: Zap, title: '14 Language SDKs', desc: 'Python, C#, C++, Rust, Go, Java, JavaScript, Unity, Lua, PHP, Ruby, Perl, React, Vue.' },
-              { icon: Terminal, title: 'REST API', desc: 'Full developer API for licensing, validation, automation and analytics with detailed documentation.' },
-            ].map((f, i) => (
-              <div key={i} style={{ background: 'rgba(24, 18, 22, 0.7)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '16px', padding: '24px' }}>
-                <f.icon size={28} color="#ef4444" style={{ marginBottom: '12px' }} />
-                <h3 style={{ fontSize: '18px', fontWeight: 700, marginBottom: '8px' }}>{f.title}</h3>
-                <p style={{ color: '#9ca3af', fontSize: '14px', lineHeight: 1.6 }}>{f.desc}</p>
+        <h1 style={{
+          fontSize: 'clamp(36px, 6vw, 72px)', fontWeight: 900, letterSpacing: '-2px',
+          lineHeight: 1.1, marginBottom: '20px',
+          background: 'linear-gradient(135deg, #ffffff 30%, #fca5a5 70%, #ef4444 100%)',
+          WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+          animation: 'fadeInUp 0.8s ease',
+        }}>
+          Protect Your<br />Software
+        </h1>
+
+        <p style={{ color: '#9ca3af', fontSize: '17px', maxWidth: '520px', lineHeight: 1.7, marginBottom: '36px', animation: 'fadeInUp 0.8s ease 0.1s both' }}>
+          License generation, hardware ID locking, auto-updates, and cloud variables. Built for developers, by developers.
+        </p>
+
+        <div style={{ display: 'flex', gap: '12px', animation: 'fadeInUp 0.8s ease 0.2s both' }}>
+          <a href="/register" style={{
+            padding: '14px 32px', borderRadius: '12px', color: '#fff', textDecoration: 'none',
+            fontSize: '15px', fontWeight: 700, background: 'linear-gradient(135deg, #ef4444, #b91c1c)',
+            boxShadow: '0 8px 30px rgba(239,68,68,0.35)', display: 'flex', alignItems: 'center', gap: '8px',
+            transition: 'all 0.3s', transform: 'translateY(0)',
+          }}
+            onMouseEnter={e => { e.target.style.transform = 'translateY(-2px)'; e.target.style.boxShadow = '0 12px 40px rgba(239,68,68,0.45)'; }}
+            onMouseLeave={e => { e.target.style.transform = 'translateY(0)'; e.target.style.boxShadow = '0 8px 30px rgba(239,68,68,0.35)'; }}>
+            Start Building <ArrowRight size={16} />
+          </a>
+          <a href="#features" style={{
+            padding: '14px 32px', borderRadius: '12px', color: '#e5e7eb', textDecoration: 'none',
+            fontSize: '15px', fontWeight: 600, background: 'rgba(255,255,255,0.05)',
+            border: '1px solid rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', gap: '8px',
+          }}>
+            Learn More <ChevronRight size={16} />
+          </a>
+        </div>
+
+        {/* Stats */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '32px', marginTop: '72px', width: '100%', maxWidth: '640px', animation: 'fadeInUp 0.8s ease 0.3s both' }}>
+          {stats.map((s, i) => (
+            <div key={i} style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: '32px', fontWeight: 900, color: '#ef4444' }}><AnimatedCounter target={s.value} />{s.suffix}</div>
+              <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '4px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '1px' }}>{s.label}</div>
+            </div>
+          ))}
+        </div>
+
+        <div style={{ position: 'absolute', bottom: '30px', animation: 'bounce 2s infinite' }}>
+          <ChevronRight size={20} color="#6b7280" style={{ transform: 'rotate(90deg)' }} />
+        </div>
+      </section>
+
+      <style>{`
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes fadeInDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        @keyframes bounce { 0%, 100% { transform: translateY(0) rotate(90deg); } 50% { transform: translateY(8px) rotate(90deg); } }
+        @keyframes glow { 0%, 100% { box-shadow: 0 0 20px rgba(239,68,68,0.2); } 50% { box-shadow: 0 0 40px rgba(239,68,68,0.4); } }
+      `}</style>
+
+      <div style={{ position: 'relative', zIndex: 1, maxWidth: '1100px', width: '100%', margin: '0 auto', padding: '0 24px' }}>
+
+        {/* Features */}
+        <section id="features" {...fadeUp('features')} style={{ padding: '80px 0' }}>
+          <div style={{ textAlign: 'center', marginBottom: '48px' }}>
+            <span style={{ fontSize: '12px', fontWeight: 700, color: '#ef4444', textTransform: 'uppercase', letterSpacing: '3px' }}>Features</span>
+            <h2 style={{ fontSize: '36px', fontWeight: 900, marginTop: '8px', letterSpacing: '-1px' }}>Everything You Need</h2>
+            <p style={{ color: '#6b7280', fontSize: '15px', marginTop: '8px' }}>Complete licensing platform with enterprise-grade security</p>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px' }}>
+            {features.map((f, i) => (
+              <div key={i} style={{
+                background: 'rgba(24, 18, 22, 0.6)', border: '1px solid rgba(255,255,255,0.05)',
+                borderRadius: '16px', padding: '28px 24px', transition: 'all 0.3s',
+                cursor: 'default',
+              }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(239,68,68,0.3)'; e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 12px 30px rgba(0,0,0,0.3)'; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.05)'; e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none'; }}>
+                <div style={{ width: '42px', height: '42px', borderRadius: '10px', background: 'rgba(239,68,68,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '16px' }}>
+                  <f.icon size={20} color="#ef4444" />
+                </div>
+                <h3 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '8px' }}>{f.title}</h3>
+                <p style={{ color: '#6b7280', fontSize: '13px', lineHeight: 1.6 }}>{f.desc}</p>
               </div>
             ))}
           </div>
-        )}
+        </section>
 
-        {/* TAB: SDKs */}
-        {activeTab === 'sdks' && (
+        {/* Code Section */}
+        <section id="sdks" {...fadeUp('sdks')} style={{ padding: '80px 0' }}>
+          <div style={{ textAlign: 'center', marginBottom: '48px' }}>
+            <span style={{ fontSize: '12px', fontWeight: 700, color: '#ef4444', textTransform: 'uppercase', letterSpacing: '3px' }}>SDKs</span>
+            <h2 style={{ fontSize: '36px', fontWeight: 900, marginTop: '8px', letterSpacing: '-1px' }}>14 Language SDKs</h2>
+            <p style={{ color: '#6b7280', fontSize: '15px', marginTop: '8px' }}>Integrate with any language in minutes</p>
+          </div>
           <div style={{
-            background: 'rgba(24, 18, 22, 0.75)',
-            border: '1px solid rgba(239, 68, 68, 0.2)',
-            borderRadius: '20px',
-            padding: '24px',
+            background: 'rgba(24, 18, 22, 0.6)', border: '1px solid rgba(255,255,255,0.06)',
+            borderRadius: '20px', padding: '24px', overflow: 'hidden',
           }}>
-            <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '12px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+            <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '12px', borderBottom: '1px solid rgba(255,255,255,0.04)', marginBottom: '20px' }}>
               {Object.keys(sdkSnippets).map(lang => (
-                <button
-                  key={lang}
-                  onClick={() => setSelectedSdk(lang)}
-                  style={{
-                    padding: '6px 14px',
-                    borderRadius: '8px',
-                    border: 'none',
-                    background: selectedSdk === lang ? '#ef4444' : 'rgba(255,255,255,0.05)',
-                    color: selectedSdk === lang ? '#fff' : '#9ca3af',
-                    fontSize: '13px',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    textTransform: 'uppercase',
-                  }}
-                >
-                  {lang}
-                </button>
+                <button key={lang} onClick={() => setSelectedSdk(lang)} style={{
+                  padding: '7px 16px', borderRadius: '8px', border: 'none', flexShrink: 0,
+                  background: selectedSdk === lang ? '#ef4444' : 'rgba(255,255,255,0.04)',
+                  color: selectedSdk === lang ? '#fff' : '#6b7280', fontSize: '13px', fontWeight: 600, cursor: 'pointer',
+                  textTransform: 'uppercase', transition: 'all 0.2s',
+                }}>{lang}</button>
               ))}
             </div>
-
-            <div style={{ marginTop: '16px', position: 'relative' }}>
+            <div style={{ position: 'relative' }}>
               <pre style={{
-                background: '#09080a',
-                padding: '20px',
-                borderRadius: '12px',
-                overflowX: 'auto',
-                fontSize: '14px',
-                lineHeight: 1.6,
-                color: '#f87171',
-                fontFamily: 'monospace',
-              }}>
-                {sdkSnippets[selectedSdk]}
-              </pre>
-              <button
-                onClick={() => {
-                  navigator.clipboard.writeText(sdkSnippets[selectedSdk]);
-                  toast.success('Snippet copied!');
-                }}
-                style={{
-                  position: 'absolute',
-                  top: '12px',
-                  right: '12px',
-                  padding: '6px 12px',
-                  background: 'rgba(255,255,255,0.1)',
-                  border: 'none',
-                  borderRadius: '6px',
-                  color: '#fff',
-                  fontSize: '12px',
-                  cursor: 'pointer',
-                }}
-              >
-                <Copy size={14} />
+                background: '#09080a', padding: '24px', borderRadius: '12px',
+                overflowX: 'auto', fontSize: '14px', lineHeight: 1.7, color: '#f87171',
+                fontFamily: '"Fira Code", "JetBrains Mono", monospace', margin: 0,
+              }}>{sdkSnippets[selectedSdk]}</pre>
+              <button onClick={() => { navigator.clipboard.writeText(sdkSnippets[selectedSdk]); toast.success('Copied!'); }}
+                style={{ position: 'absolute', top: '12px', right: '12px', padding: '6px 12px', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '6px', color: '#fff', fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <Copy size={12} /> Copy
               </button>
             </div>
           </div>
-        )}
+        </section>
 
-        {/* TAB: PRICING */}
-        {activeTab === 'pricing' && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px' }}>
-            <div style={{ background: 'rgba(24, 18, 22, 0.7)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '20px', padding: '32px' }}>
-              <span style={{ background: 'rgba(255,255,255,0.1)', padding: '4px 12px', borderRadius: '12px', fontSize: '12px', fontWeight: 600 }}>Community</span>
-              <h3 style={{ fontSize: '28px', fontWeight: 800, marginTop: '12px' }}>Free</h3>
-              <p style={{ color: '#9ca3af', fontSize: '13px', marginBottom: '20px' }}>Self-hosted forever with 100% open source code.</p>
-              <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 24px 0', display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '14px', color: '#cbd5e1' }}>
-                <li>✓ Unlimited applications</li>
-                <li>✓ Unlimited license keys</li>
-                <li>✓ All 14 client SDKs</li>
-                <li>✓ Hardware ID (HWID) binding</li>
+        {/* Pricing */}
+        <section id="pricing" {...fadeUp('pricing')} style={{ padding: '80px 0 40px' }}>
+          <div style={{ textAlign: 'center', marginBottom: '48px' }}>
+            <span style={{ fontSize: '12px', fontWeight: 700, color: '#ef4444', textTransform: 'uppercase', letterSpacing: '3px' }}>Pricing</span>
+            <h2 style={{ fontSize: '36px', fontWeight: 900, marginTop: '8px', letterSpacing: '-1px' }}>Free Forever</h2>
+            <p style={{ color: '#6b7280', fontSize: '15px', marginTop: '8px' }}>Self-hosted, open source, no hidden fees</p>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px', maxWidth: '700px', margin: '0 auto' }}>
+            <div style={{ background: 'rgba(24,18,22,0.6)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '20px', padding: '32px' }}>
+              <span style={{ background: 'rgba(255,255,255,0.06)', padding: '4px 12px', borderRadius: '8px', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px', color: '#9ca3af' }}>Community</span>
+              <div style={{ fontSize: '40px', fontWeight: 900, marginTop: '16px' }}>Free</div>
+              <p style={{ color: '#6b7280', fontSize: '13px', margin: '8px 0 24px' }}>Self-hosted with full source code</p>
+              <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 24px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {['Unlimited applications', 'Unlimited license keys', 'All 14 SDKs', 'HWID binding'].map((item, i) => (
+                  <li key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', color: '#9ca3af' }}>
+                    <Check size={14} color="#ef4444" /> {item}
+                  </li>
+                ))}
               </ul>
-              <button
-                type="button"
-                onClick={() => setActiveTab('features')}
-                style={{ width: '100%', padding: '12px', background: '#262626', color: '#fff', border: 'none', borderRadius: '10px', fontWeight: 600, cursor: 'pointer' }}
-              >
-                Deploy Now
-              </button>
+              <a href="/register" style={{ display: 'block', textAlign: 'center', padding: '12px', background: 'rgba(255,255,255,0.06)', color: '#fff', borderRadius: '10px', textDecoration: 'none', fontWeight: 600, fontSize: '14px' }}>Deploy Now</a>
             </div>
-
-            <div style={{ background: 'rgba(24, 18, 22, 0.85)', border: '1px solid #ef4444', borderRadius: '20px', padding: '32px', boxShadow: '0 0 30px rgba(239, 68, 68, 0.2)' }}>
-              <span style={{ background: '#ef4444', color: '#fff', padding: '4px 12px', borderRadius: '12px', fontSize: '12px', fontWeight: 600 }}>Recommended</span>
-              <h3 style={{ fontSize: '28px', fontWeight: 800, marginTop: '12px' }}>Pro / Enterprise</h3>
-              <p style={{ color: '#9ca3af', fontSize: '13px', marginBottom: '20px' }}>For commercial software & game studio protection.</p>
-              <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 24px 0', display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '14px', color: '#cbd5e1' }}>
-                <li>✓ Everything in Community</li>
-                <li>✓ Anti-tamper binary hash checks</li>
-                <li>✓ Discord & Slack Webhooks</li>
-                <li>✓ Cloud Variables storage</li>
-                <li>✓ Dedicated client portal</li>
+            <div style={{ background: 'rgba(24,18,22,0.85)', border: '1px solid rgba(239,68,68,0.4)', borderRadius: '20px', padding: '32px', boxShadow: '0 0 40px rgba(239,68,68,0.08)', position: 'relative', overflow: 'hidden' }}>
+              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '3px', background: 'linear-gradient(90deg, #ef4444, #f97316)' }} />
+              <span style={{ background: '#ef4444', color: '#fff', padding: '4px 12px', borderRadius: '8px', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px' }}>Full Stack</span>
+              <div style={{ fontSize: '40px', fontWeight: 900, marginTop: '16px' }}>Included</div>
+              <p style={{ color: '#6b7280', fontSize: '13px', margin: '8px 0 24px' }}>Everything, no restrictions</p>
+              <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 24px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {['Everything in Community', 'Anti-tamper hash checks', 'Discord & Slack Webhooks', 'Cloud Variables', 'Auto-Updater engine'].map((item, i) => (
+                  <li key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', color: '#e5e7eb' }}>
+                    <Check size={14} color="#ef4444" /> {item}
+                  </li>
+                ))}
               </ul>
-              <button
-                type="button"
-                onClick={() => setActiveTab('features')}
-                style={{ width: '100%', padding: '12px', background: '#ef4444', color: '#fff', border: 'none', borderRadius: '10px', fontWeight: 700, cursor: 'pointer' }}
-              >
-                Get Started
-              </button>
+              <a href="/register" style={{ display: 'block', textAlign: 'center', padding: '12px', background: 'linear-gradient(135deg, #ef4444, #b91c1c)', color: '#fff', borderRadius: '10px', textDecoration: 'none', fontWeight: 700, fontSize: '14px', boxShadow: '0 6px 20px rgba(239,68,68,0.3)' }}>Get Started</a>
             </div>
           </div>
-        )}
-      </main>
+        </section>
+      </div>
 
       {/* Footer */}
-      <footer style={{
-        padding: '24px 32px',
-        textAlign: 'center',
-        borderTop: '1px solid rgba(255,255,255,0.06)',
-        color: '#6b7280',
-        fontSize: '12px',
-      }}>
-        DARK-AUTH &bull; All-In-One Authentication & Licensing Platform &bull; 100% Free &amp; Open Source
+      <footer style={{ position: 'relative', zIndex: 1, borderTop: '1px solid rgba(255,255,255,0.04)', marginTop: '40px' }}>
+        <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '40px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Shield size={16} color="#ef4444" />
+            <span style={{ fontSize: '13px', fontWeight: 700, color: '#6b7280' }}>DARK<span style={{ color: '#ef4444' }}>AUTH</span></span>
+          </div>
+          <div style={{ fontSize: '12px', color: '#4b5563' }}>
+            100% Free & Open Source &bull; Built for Developers
+          </div>
+          <div style={{ display: 'flex', gap: '16px' }}>
+            <a href="https://github.com/mahdi2372/dark-auth" target="_blank" rel="noopener" style={{ color: '#4b5563', textDecoration: 'none', fontSize: '12px', transition: 'color 0.2s' }}
+              onMouseEnter={e => e.target.style.color = '#ef4444'} onMouseLeave={e => e.target.style.color = '#4b5563'}>GitHub</a>
+            <a href="/login" style={{ color: '#4b5563', textDecoration: 'none', fontSize: '12px', transition: 'color 0.2s' }}
+              onMouseEnter={e => e.target.style.color = '#ef4444'} onMouseLeave={e => e.target.style.color = '#4b5563'}>Dashboard</a>
+          </div>
+        </div>
       </footer>
     </div>
   );
