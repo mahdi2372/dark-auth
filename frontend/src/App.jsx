@@ -16,6 +16,7 @@ import CloudVariables from './pages/CloudVariables';
 import Blacklist from './pages/Blacklist';
 import Webhooks from './pages/Webhooks';
 import AppUsers from './pages/AppUsers';
+import AppSettings from './pages/AppSettings';
 import Home from './pages/Home';
 
 function PrivateRoute({ children }) {
@@ -41,6 +42,7 @@ function AppRoutes() {
 
       <Route path="/dashboard" element={<PrivateRoute><Layout><Dashboard /></Layout></PrivateRoute>} />
       <Route path="/apps" element={<PrivateRoute><Layout><Apps /></Layout></PrivateRoute>} />
+      <Route path="/apps/:id/settings" element={<PrivateRoute><Layout><AppSettings /></Layout></PrivateRoute>} />
       <Route path="/licenses" element={<PrivateRoute><Layout><Licenses /></Layout></PrivateRoute>} />
       <Route path="/versions" element={<PrivateRoute><Layout><Versions /></Layout></PrivateRoute>} />
       <Route path="/app-users" element={<PrivateRoute><Layout><AppUsers /></Layout></PrivateRoute>} />
